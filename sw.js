@@ -1,8 +1,8 @@
 
-// sw.js — refresh sicuro dell'index su GitHub Pages
-const CACHE_NAME = 'mathquest-v3'; // <-- cambia versione per forzare update
+// sw.js — MathQuest PWA (GitHub Pages) — network-first per HTML
+const CACHE_NAME = 'mathquest-v5'; // cambia versione quando aggiorni l'app
 const ASSETS = [
-  './',
+  './',                      // root del repo (es. /mathquest/)
   './index.html',
   './manifest.webmanifest',
   './sw.js',
@@ -10,42 +10,47 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
+// Install: precache asset di base
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
   self.skipWaiting();
 });
 
+// Activate: pulizia cache vecchie
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : undefined)))
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : undefined)))
     )
   );
   self.clients.claim();
 });
 
+// Fetch: network-first per navigazioni (index.html), cache-first per il resto
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Solo stessa origine
+  // gestiamo solo richieste della stessa origine (il tuo sito GitHub Pages)
   if (url.origin !== self.location.origin) return;
 
-  // Per le navigazioni (index.html) usa NETWORK-FIRST: così prendi subito la versione nuova
+  // Navigazioni: tenta rete prima (così vedi subito gli aggiornamenti dell'index)
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then((resp) => {
-          // aggiorna la cache in background
+          // aggiorna cache dell'index in background
           const copy = resp.clone();
           caches.open(CACHE_NAME).then((c) => c.put('./index.html', copy));
           return resp;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => caches.match('./index.html')) // fallback offline
     );
     return;
   }
 
-  // Per il resto cache-first
+  // Altri asset: cache-first
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
