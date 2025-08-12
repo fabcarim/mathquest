@@ -1,6 +1,6 @@
 
 // sw.js — MathQuest PWA (cache-first) per GitHub Pages
-const CACHE_NAME = 'mathquest-v1';
+const CACHE_NAME = 'mathquest-v2';
 const ASSETS = [
   './',                      // root del repo (es. /mathquest/)
   './index.html',
