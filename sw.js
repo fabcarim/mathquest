@@ -1,22 +1,21 @@
-/* sw.js — MathQuest PWA (GitHub Pages) — v9
-   Strategia:
-   - Navigazioni (documenti): NETWORK-FIRST con fallback offline
-   - Asset statici (css/js/icone/manifest): CACHE-FIRST con fill della cache
+/* sw.js — MathQuest PWA — v10
+   - Navigazioni (document): NETWORK-FIRST con fallback offline (index.html)
+   - Asset statici (css/js/icone/manifest): CACHE-FIRST con fill dinamico
 */
-const VERSION    = 'v9';
+const VERSION    = 'v10';
 const CACHE_NAME = `mathquest-${VERSION}`;
 
 const PRECACHE = [
-  './',                    // root del repo (es. /mathquest/)
+  './',
   './index.html',
-  './styles.css',
-  './manifest.webmanifest',
+  './styles.css',                 // se NON usi styles.css puoi lasciarlo: fallirà silenziosamente
+  './manifest.webmanifest',       // se presente
   './sw.js',
-  './icons/icon-192.png',
+  './icons/icon-192.png',         // se presenti
   './icons/icon-512.png'
 ];
 
-// Install: precache degli asset base
+// Install: precache di base
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
@@ -24,7 +23,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: elimina le cache precedenti
+// Activate: pulizia cache vecchie
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -34,21 +33,21 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first per navigazioni, cache-first per il resto
+// Fetch: network-first per navigazioni, cache-first per asset
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Gestiamo solo stessa origine (il tuo sito GitHub Pages)
+  // gestisci solo stessa origine (GitHub Pages del tuo repo)
   if (url.origin !== self.location.origin) return;
 
-  // NAVIGAZIONI (documenti/SPA): NETWORK-FIRST
   const isNavigation = req.mode === 'navigate' || req.destination === 'document';
   if (isNavigation) {
+    // NETWORK FIRST: prova rete, se offline usa index dalla cache
     event.respondWith(
       fetch(req)
         .then((resp) => {
-          // aggiorna la cache dell'index in background
+          // aggiorna cache dell'index in background
           const copy = resp.clone();
           caches.open(CACHE_NAME).then((c) => c.put('./index.html', copy));
           return resp;
@@ -58,12 +57,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // STATICI: CACHE-FIRST con riempimento della cache
+  // per tutto il resto (GET) usa CACHE FIRST
   if (req.method === 'GET') {
     event.respondWith(
       caches.match(req).then((cached) => {
         if (cached) return cached;
         return fetch(req).then((resp) => {
+          // salva nella cache gli asset "base"
           if (resp && resp.status === 200 && resp.type === 'basic') {
             const copy = resp.clone();
             caches.open(CACHE_NAME).then((c) => c.put(req, copy));
@@ -75,8 +75,8 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Aggiornamento immediato opzionale dal client:
-// navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' })
+// opzionale: aggiornamento immediato da client
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
+
