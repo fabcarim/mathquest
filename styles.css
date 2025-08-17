@@ -1,4 +1,3 @@
-/* =============== Base (mobile-first) =============== */
 :root{
   --fs-xxl: clamp(24px, 5.4vw, 40px);
   --fs-xl:  clamp(20px, 4.6vw, 28px);
@@ -57,15 +56,40 @@ h1{ font-size: var(--fs-xxl); margin:4px 0 10px 0; }
 
 .pill{ border:1px solid var(--border); border-radius:999px; padding:10px 14px; }
 
-/* Progress */
 .progress{ height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
 .bar{ height:100%; width:0%; background:var(--accent); }
 
-/* Overlay */
 .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; }
 .modal{ background:#fff; border-radius:16px; padding:20px; }
 
-/* ========== Media Queries ========== */
+/* Mastery */
+.mastery-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.mastery-tile{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.mastery-head{ display:flex; justify-content:space-between; align-items:center; }
+.mastery-topic{ font-weight:700; }
+.mastery-badge{
+  font-weight:800; border-radius:10px; padding:4px 8px;
+  background:#111; color:#fff; min-width:42px; text-align:center;
+}
+.mastery-bar{ height:8px; background:#e5e7eb; border-radius:8px; overflow:hidden; }
+.mastery-bar > div{ height:100%; width:0%; background:var(--accent); }
+.mastery-sub{ font-size:12px; color:var(--muted); }
+.mastery-ok  { background:#10b981; }
+.mastery-mid { background:#f59e0b; }
+.mastery-low { background:#ef4444; }
+
 @media (max-width:430px){
   .wrap{ padding-top:10px; }
 }
