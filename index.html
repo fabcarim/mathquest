@@ -1,152 +1,95 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="utf-8" />
-  <title>MathQuest · 1ª–2ª media (v18.1)</title>
+:root{
+  --bg:#f5f7ff; --fg:#111; --muted:#6b7280;
+  --accent:#2563eb;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+html,body{ height:100%; }
+body{
+  margin:0; font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+  background:linear-gradient(135deg,#eef2ff,#e0f2fe); color:var(--fg);
+}
+.wrap{ max-width: 980px; margin:0 auto; padding:16px; }
 
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="MathQuest">
-  <meta name="format-detection" content="telephone=no">
+/* Layout utilities */
+.row{ display:flex; flex-wrap:wrap; }
+.space-between{ justify-content:space-between; }
+.align-center{ align-items:center; }
+.gap{ gap:10px; }
+.mt6{ margin-top:6px; } .mt8{ margin-top:8px; } .mt10{ margin-top:10px; } .mt12{ margin-top:12px; }
+.flex1{ flex:1 1 340px; }
+.hidden{ display:none !important; }
 
-  <link rel="manifest" href="manifest.webmanifest?v=181">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=181">
-</head>
-<body>
-  <div class="wrap">
-    <header class="row space-between align-center">
-      <h1 class="app-title">MathQuest <span class="kicker">1ª–2ª media</span></h1>
-      <div class="version-badge">v18.1</div>
-    </header>
+.app-title{ margin:0; }
+.version-badge{ font-size:12px; color:#fff; background:#111; padding:6px 10px; border-radius:999px; }
 
-    <nav class="row gap nav-grid">
-      <button class="btn" id="btnPlay">Gioca ora</button>
-      <button class="btn" id="btnTrain">Allenamento mirato</button>
-      <button class="btn" id="btnProg">Progressi</button>
-      <button class="btn ghost" id="btnSettings">Impostazioni</button>
-      <button class="btn ghost" id="btnHome">Home</button>
-    </nav>
+/* NAV: su mobile 2 colonne, bottoni full width */
+.nav-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+@media (min-width: 680px){ .nav-grid{ display:flex; } }
 
-    <!-- HOME -->
-    <section id="home" class="screen">
-      <div class="row wrap gap">
-        <div class="card flex1">
-          <h2>Benvenuta!</h2>
-          <p class="muted">
-            Obiettivo di oggi: <b id="goalVal">20</b> risposte corrette.<br>
-            Se ieri non lo raggiungi, oggi sale del <b>+10%</b>; se lo raggiungi, domani riparte da 20.
-          </p>
-          <div class="row gap stack">
-            <button class="btn" id="startQuick">Inizia subito</button>
-            <button class="btn ghost" id="startTrain">Scegli argomento</button>
-          </div>
-        </div>
+/* Bottoni */
+.btn{
+  background:var(--accent); color:#fff; border:none; border-radius:16px;
+  padding:12px 16px; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.2); font-size:16px; width:100%;
+}
+.btn.ghost{ background:#fff; color:#111; border:1px solid #111; }
+.btn[disabled]{ opacity:.6; cursor:not-allowed; }
+.stack .btn{ width:100%; } /* gruppi di bottoni impilati */
 
-        <div class="card flex1">
-          <h2>Stato di oggi</h2>
-          <div class="kicker">Conta solo il giorno corrente</div>
-          <p>Corrette oggi: <b id="correctToday">0</b> / <b id="goalVal2">20</b></p>
-          <div class="progress"><div class="bar" id="goalBar"></div></div>
-          <p class="kicker" id="goalNote">—</p>
-        </div>
-      </div>
+.card{
+  background:rgba(255,255,255,.92);
+  backdrop-filter: blur(8px);
+  border-radius:16px; box-shadow:0 2px 10px rgba(0,0,0,.06);
+  padding:16px; width:100%;
+}
 
-      <div class="card">
-        <div class="row space-between align-center">
-          <div>
-            <div class="kicker">Cambia argomento rapido</div>
-            <div id="quickTopics" class="row gap mt6 wrap"></div>
-          </div>
-          <div><button class="btn ghost" id="clearTopic">Nessun filtro</button></div>
-        </div>
-      </div>
+.kicker{ font-size:12px; color:var(--muted); text-transform:uppercase; }
+.muted{ color:var(--muted); }
+.screen{ margin-top:16px; }
 
-      <div class="card">
-        <h2>🏅 Badge</h2>
-        <div class="kicker">Guadagnati</div>
-        <div id="homeBadgesEarned" class="badges-grid mt6"></div>
-        <div class="kicker mt12">Da conquistare</div>
-        <div id="homeBadgesLocked" class="badges-grid mt6"></div>
-      </div>
-    </section>
+.progress{ height:10px; background:#e5e7eb; border-radius:10px; overflow:hidden; }
+.bar{ height:100%; background:var(--accent); width:0%; transition: width .25s; }
 
-    <!-- ALLENAMENTO MIRATO -->
-    <section id="train" class="screen hidden">
-      <div class="card">
-        <div class="row space-between align-center">
-          <h2>Seleziona argomento</h2>
-          <div class="row align-center gap">
-            <span class="kicker">Difficoltà</span>
-            <div id="levels" class="row gap"></div>
-          </div>
-        </div>
-        <div id="topics" class="row gap mt8 wrap"></div>
-        <div class="row gap mt8 stack">
-          <button class="btn" id="trainGo">Inizia allenamento</button>
-          <button class="btn ghost" id="resetTopic">Reset argomento</button>
-        </div>
-      </div>
-    </section>
+input.answer{
+  width:100%; padding:14px 12px; font-size:18px;
+  border:1px solid #111; border-radius:12px;
+}
 
-    <!-- PLAY -->
-    <section id="play" class="screen hidden">
-      <div class="card">
-        <div class="row space-between align-center">
-          <div>
-            <div id="topicLabel" class="kicker">Allenamento: Tutti gli argomenti</div>
-            <div class="muted">Difficoltà <span id="diffLabel">2</span> <span class="kicker" id="autoDiffTag"></span></div>
-          </div>
-          <div class="muted">Serie corretta: <b id="streak">0</b></div>
-        </div>
+.choice{
+  background:#fff; color:#111; border:1px solid #111; border-radius:12px;
+  padding:12px; cursor:pointer; text-align:center; font-size:18px; width:100%;
+}
+.choice.active{ background:var(--accent); color:#fff; }
 
-        <div id="stem" class="stem">—</div>
-        <div id="stemMeta" class="kicker"></div>
+.hint{ background:#e0f2fe; border-radius:12px; padding:10px; white-space:pre-wrap; }
+.ok{ background:#dcfce7; border-radius:12px; padding:10px; }
+.bad{ background:#fef9c3; border-radius:12px; padding:10px; }
 
-        <div id="answerUI" class="mt10"></div>
+/* Badge / Mastery */
+.badges-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; }
+.badge{ display:inline-flex; align-items:center; gap:8px; border:1px solid #111; border-radius:999px; padding:6px 10px; background:#fff; }
 
-        <div class="row gap mt10 align-center stack">
-          <button class="btn" id="btnConfirm">Conferma</button>
-          <button class="btn ghost" id="btnNext" disabled>Prossima</button>
-          <button class="btn ghost" id="btnHint">Mostra hint</button>
-          <button class="btn ghost" id="btnSimilar">Esempio simile</button>
-        </div>
+.mastery-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:10px; }
+.mastery-tile{ border:1px solid #111; border-radius:14px; background:#fff; padding:12px; }
+.mastery-head{ display:flex; justify-content:space-between; align-items:center; }
+.mastery-topic{ font-weight:700; }
+.mastery-badge{ padding:4px 10px; border-radius:999px; color:#fff; font-weight:700; font-variant-numeric: tabular-nums; }
+.mastery-ok{ background:#10b981; } .mastery-mid{ background:#f59e0b; } .mastery-low{ background:#ef4444; }
+.mastery-bar{ height:8px; background:#e5e7eb; border-radius:8px; overflow:hidden; margin-top:8px; }
+.mastery-bar > div{ height:100%; background:var(--accent); width:0%; }
 
-        <div id="feedback" class="mt10"></div>
-        <div id="hints" class="hint mt10 hidden"></div>
-      </div>
+/* Overlay (nascosto via inline style nell'HTML) */
+.overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.45);
+  display:flex; align-items:center; justify-content:center; padding:16px; z-index:9999;
+}
+.modal{
+  background:#fff; border-radius:16px; max-width:520px; width:100%; padding:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25); text-align:center;
+}
 
-      <div class="row wrap gap mt12">
-        <div class="card flex1">
-          <div>Oggi corrette: <b id="corToday2">0</b> / <b id="goalSmall">20</b></div>
-          <div class="progress mt6"><div class="bar" id="goalBar2"></div></div>
-          <div class="kicker" id="goalHint"></div>
-        </div>
-        <div class="card flex1">
-          <div>Badge</div>
-          <div id="badges" class="row gap mt6 wrap"></div>
-        </div>
-      </div>
-    </section>
+.footer{ margin-top:24px; font-size:12px; color:var(--muted); }
 
-    <footer class="footer">
-      <div>Consigli: 10–15 min al giorno. Privacy: dati solo in locale.</div>
-      <div class="muted">Build: <b>v18.1</b></div>
-    </footer>
-  </div>
-
-  <!-- Overlay: nascosto via style inline -->
-  <div class="overlay" id="overlay" aria-hidden="true" style="display:none">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="goalTitle">
-      <h2 id="goalTitle">🎉 Obiettivo raggiunto!</h2>
-      <div class="kicker">Hai raggiunto <b id="goalCount"></b>/<b id="goalCountTot"></b> risposte corrette oggi</div>
-      <div class="kicker">Accuracy: <b id="goalAcc"></b>%</div>
-      <button class="btn" id="btnHomeNow">Torna alla Home</button>
-      <div class="kicker mt8">Torno automaticamente alla Home tra <span id="countdown">5</span>s…</div>
-    </div>
-  </div>
-
-  <script src="app.js?v=181" defer></script>
-</body>
-</html>
+/* Tipografia mobile */
+.stem{ margin-top:8px; font-size:22px; font-weight:700; }
+#answerUI .grid-choices{ display:grid; grid-template-columns:1fr; gap:8px; }
+@media (min-width: 640px){ #answerUI .grid-choices{ grid-template-columns:1fr 1fr; } }
