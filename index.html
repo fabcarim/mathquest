@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>MathQuest · 1ª–2ª media (v16.1)</title>
+  <title>MathQuest · 1ª–2ª media (v17)</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,15 +10,14 @@
   <meta name="apple-mobile-web-app-title" content="MathQuest">
   <meta name="format-detection" content="telephone=no">
 
-  <link rel="manifest" href="manifest.webmanifest?v=161">
+  <link rel="manifest" href="manifest.webmanifest?v=17">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=161">
+  <link rel="stylesheet" href="styles.css?v=17">
 
   <script>
-    // Registra il service worker (offline/PWA)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('sw.js?v=161')
+        navigator.serviceWorker.register('sw.js?v=17')
           .catch(function(e){ console.log('SW registration failed', e); });
       });
     }
@@ -28,7 +27,7 @@
   <div class="wrap">
     <header class="row space-between align-center">
       <h1 class="app-title">MathQuest <span class="kicker">1ª–2ª media</span></h1>
-      <div class="version-badge">v16.1</div>
+      <div class="version-badge">v17</div>
     </header>
 
     <nav class="row gap">
@@ -164,7 +163,7 @@
 
     <footer class="footer">
       <div>Consigli: 10–15 min al giorno. Privacy: dati solo in locale.</div>
-      <div class="muted">Build: <b>v16.1</b></div>
+      <div class="muted">Build: <b>v17</b></div>
     </footer>
   </div>
 
@@ -179,6 +178,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=161"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
