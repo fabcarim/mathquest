@@ -2,22 +2,24 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>MathQuest · 1ª–2ª media (v16-dev)</title>
+  <title>MathQuest · 1ª–2ª media (v16.1)</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MathQuest">
   <meta name="format-detection" content="telephone=no">
-  <link rel="manifest" href="manifest.webmanifest">
+
+  <link rel="manifest" href="manifest.webmanifest?v=161">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=161">
 
   <script>
-    // registra il service worker (offline/PWA)
+    // Registra il service worker (offline/PWA)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('sw.js?v=16').catch(function(e){ console.log('SW fail', e); });
+        navigator.serviceWorker.register('sw.js?v=161')
+          .catch(function(e){ console.log('SW registration failed', e); });
       });
     }
   </script>
@@ -26,7 +28,7 @@
   <div class="wrap">
     <header class="row space-between align-center">
       <h1 class="app-title">MathQuest <span class="kicker">1ª–2ª media</span></h1>
-      <div class="version-badge">v16-dev</div>
+      <div class="version-badge">v16.1</div>
     </header>
 
     <nav class="row gap">
@@ -160,23 +162,9 @@
       </div>
     </section>
 
-    <!-- IMPOSTAZIONI -->
-    <section id="settings" class="screen hidden">
-      <div class="card">
-        <h2>Impostazioni</h2>
-        <label class="toggle"><input type="checkbox" id="toggleAuto" checked> Avanzamento automatico dopo risposta corretta</label>
-        <label class="toggle"><input type="checkbox" id="toggleAutoMC" checked> Conferma automatica nelle domande a scelta</label>
-        <label class="toggle"><input type="checkbox" id="toggleAutoDiff" checked> Difficoltà automatica</label>
-        <small class="kicker">Obiettivo adattivo: base 20, +10% se ieri non completato, reset a 20 se ieri completato.</small>
-        <div class="row mt8">
-          <button class="btn" id="btnReset">Reset dati</button>
-        </div>
-      </div>
-    </section>
-
     <footer class="footer">
       <div>Consigli: 10–15 min al giorno. Privacy: dati solo in locale.</div>
-      <div class="muted">Build: <b>v16-dev</b></div>
+      <div class="muted">Build: <b>v16.1</b></div>
     </footer>
   </div>
 
@@ -191,6 +179,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=161"></script>
 </body>
 </html>
