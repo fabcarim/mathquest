@@ -1,71 +1,20 @@
-/* sw.js — MathQuest PWA — v12
-   - Navigazioni (document): NETWORK-FIRST con fallback offline (index.html)
-   - Asset statici: CACHE-FIRST con fill dinamico
-*/
-const VERSION    = 'v12';
-const CACHE_NAME = `mathquest-${VERSION}`;
-
-const PRECACHE = [
+// sw.js v18 – cache essenziale
+const CACHE_NAME = 'mathquest-v18';
+const ASSETS = [
   './',
   './index.html',
-  './manifest.webmanifest',
-  './sw.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './styles.css?v=18',
+  './app.js?v=18',
+  './manifest.webmanifest?v=18'
 ];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)));
+});
+self.addEventListener('activate', e=>{
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));
+});
+self.addEventListener('fetch', e=>{
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).catch(()=>caches.match('./index.html')))
   );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : undefined)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
-
-  if (url.origin !== self.location.origin) return;
-
-  const isNav = req.mode === 'navigate' || req.destination === 'document';
-  if (isNav) {
-    event.respondWith(
-      fetch(req)
-        .then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE_NAME).then((c) => c.put('./index.html', copy));
-          return resp;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  if (req.method === 'GET') {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        if (cached) return cached;
-        return fetch(req).then((resp) => {
-          if (resp && resp.status === 200 && resp.type === 'basic') {
-            const copy = resp.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-          }
-          return resp;
-        });
-      })
-    );
-  }
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
