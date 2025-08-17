@@ -2,9 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>MathQuest Lite Plus · 1ª–2ª media (v12.1)</title>
+  <title>MathQuest Lite Plus · 1ª–2ª media (v12.2)</title>
 
-  <!-- iOS/Android PWA + viewport -->
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,34 +11,28 @@
   <meta name="apple-mobile-web-app-title" content="MathQuest">
   <meta name="format-detection" content="telephone=no">
 
-  <!-- Manifest & icone -->
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-
-  <!-- Stili responsive mobile-first -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Registrazione Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('sw.js').catch(function(e){
-          console.log('SW registration failed:', e);
-        });
+        navigator.serviceWorker.register('sw.js');
       });
     }
   </script>
 </head>
 <body>
   <div class="wrap">
-    <h1>MathQuest Lite Plus <span class="kicker">1ª–2ª media (v12.1)</span></h1>
+    <h1>MathQuest Lite Plus <span class="kicker">1ª–2ª media (v12.2)</span></h1>
 
     <nav class="row">
-      <button class="btn">Gioca ora</button>
-      <button class="btn">Allenamento mirato</button>
-      <button class="btn ghost">Progressi</button>
-      <button class="btn ghost">Impostazioni</button>
-      <button class="btn ghost">Home</button>
+      <button class="btn" id="btnPlay">Gioca ora</button>
+      <button class="btn" id="btnTopics">Allenamento mirato</button>
+      <button class="btn ghost" id="btnProg">Progressi</button>
+      <button class="btn ghost" id="btnSettings">Impostazioni</button>
+      <button class="btn ghost" id="btnHome">Home</button>
     </nav>
 
     <section id="home">
@@ -49,15 +42,15 @@
           <p>Obiettivo di oggi: <strong>20 risposte corrette</strong>.<br>
           Se ieri non lo raggiungi, oggi sale del +10%.</p>
           <div class="row">
-            <button class="btn">Inizia subito</button>
-            <button class="btn ghost">Scegli argomento</button>
+            <button class="btn" id="btnStart">Inizia subito</button>
+            <button class="btn ghost" id="btnChooseTopic">Scegli argomento</button>
           </div>
         </div>
 
         <div class="card">
           <h2>Stato di oggi</h2>
-          <p>Corrette oggi: <strong>0 / 20</strong></p>
-          <div class="progress"><div class="bar"></div></div>
+          <p>Corrette oggi: <strong id="todayCount">0 / 20</strong></p>
+          <div class="progress"><div class="bar" id="progressBar"></div></div>
         </div>
       </div>
 
@@ -79,12 +72,28 @@
 
       <div class="card">
         <h3>Badge</h3>
-        <p>🏅 Qui appariranno i tuoi progressi</p>
+        <p id="badgeList">🏅 Qui appariranno i tuoi progressi</p>
+      </div>
+    </section>
+
+    <section id="progress" style="display:none">
+      <div class="card">
+        <h2>Riepilogo</h2>
+        <div id="stats"></div>
+      </div>
+      <div class="card">
+        <h2>Per argomento</h2>
+        <div id="topicStats"></div>
+      </div>
+      <div class="card" id="masteryCard">
+        <h2>Comprensione per argomento</h2>
+        <div class="kicker">Voto stimato 1–10 (pesi: recenza, difficoltà, consistenza)</div>
+        <div id="masteryGrid" class="mastery-grid"></div>
+        <div id="masteryTips" class="kicker"></div>
       </div>
     </section>
   </div>
 
-  <!-- Overlay esempio -->
   <div class="overlay" id="overlay">
     <div class="modal">
       <h2>Obiettivo completato 🎉</h2>
@@ -93,7 +102,6 @@
     </div>
   </div>
 
-  <!-- Qui va la tua logica v12 (JS già pronta) -->
   <script src="app.js"></script>
 </body>
 </html>
