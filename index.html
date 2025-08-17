@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>MathQuest Lite Plus · 1ª–2ª media (v12.2)</title>
+  <title>MathQuest Lite Plus · 1ª–2ª media (v12.3)</title>
 
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
@@ -13,95 +13,190 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+
   <link rel="stylesheet" href="styles.css">
 
   <script>
+    // registra il service worker (offline)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('sw.js');
+        navigator.serviceWorker.register('sw.js').catch(function(e){ console.log('SW fail', e); });
       });
     }
   </script>
 </head>
 <body>
   <div class="wrap">
-    <h1>MathQuest Lite Plus <span class="kicker">1ª–2ª media (v12.2)</span></h1>
+    <header class="row" style="justify-content:space-between;align-items:center">
+      <h1>MathQuest Lite Plus <span class="kicker">1ª–2ª media (v12.3)</span></h1>
+      <div class="row" style="align-items:center">
+        <span class="kicker" style="margin-right:6px">Difficoltà</span>
+        <div id="levels" class="row"></div>
+      </div>
+    </header>
 
-    <nav class="row">
+    <nav class="row" style="margin-top:12px">
       <button class="btn" id="btnPlay">Gioca ora</button>
-      <button class="btn" id="btnTopics">Allenamento mirato</button>
-      <button class="btn ghost" id="btnProg">Progressi</button>
+      <button class="btn" id="btnTrain">Allenamento mirato</button>
+      <button class="btn" id="btnProg">Progressi</button>
       <button class="btn ghost" id="btnSettings">Impostazioni</button>
       <button class="btn ghost" id="btnHome">Home</button>
     </nav>
 
-    <section id="home">
+    <!-- HOME -->
+    <section id="home" style="margin-top:16px">
       <div class="row">
-        <div class="card">
+        <div class="card" style="flex:1 1 360px">
           <h2>Benvenuta!</h2>
-          <p>Obiettivo di oggi: <strong>20 risposte corrette</strong>.<br>
-          Se ieri non lo raggiungi, oggi sale del +10%.</p>
+          <p style="color:var(--muted)">
+            Obiettivo di oggi: <b id="goalVal">20</b> risposte corrette.<br>
+            Se ieri non lo raggiungi, oggi sale del <b>+10%</b>; se lo raggiungi, domani riparte da 20.
+          </p>
           <div class="row">
-            <button class="btn" id="btnStart">Inizia subito</button>
-            <button class="btn ghost" id="btnChooseTopic">Scegli argomento</button>
+            <button class="btn" id="startQuick">Inizia subito</button>
+            <button class="btn ghost" id="startTrain">Scegli argomento</button>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" style="flex:1 1 360px">
           <h2>Stato di oggi</h2>
-          <p>Corrette oggi: <strong id="todayCount">0 / 20</strong></p>
-          <div class="progress"><div class="bar" id="progressBar"></div></div>
+          <div class="kicker">Conta solo il giorno corrente</div>
+          <p>Corrette oggi: <b id="correctToday">0</b> / <b id="goalVal2">20</b></p>
+          <div class="progress"><div class="bar" id="goalBar"></div></div>
+          <p class="kicker" id="goalNote">—</p>
         </div>
       </div>
 
-      <div class="card">
-        <h3>Cambia argomento rapido</h3>
-        <div id="quickTopics" class="row">
-          <span class="pill">Calcolo interi</span>
-          <span class="pill">Decimali</span>
-          <span class="pill">Frazioni</span>
-          <span class="pill">Percentuali</span>
-          <span class="pill">Proporzioni</span>
-          <span class="pill">Equazioni</span>
-          <span class="pill">Geometria</span>
-          <span class="pill">Misure</span>
-          <span class="pill">Potenze</span>
-          <span class="pill">Radici</span>
+      <div class="card" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <div class="kicker">Cambia argomento rapido</div>
+            <div id="quickTopics" class="row" style="margin-top:6px"></div>
+          </div>
+          <div><button class="btn ghost" id="clearTopic">Nessun filtro</button></div>
         </div>
       </div>
 
-      <div class="card">
-        <h3>Badge</h3>
-        <p id="badgeList">🏅 Qui appariranno i tuoi progressi</p>
+      <div class="card" style="margin-top:12px">
+        <h2>🏅 Badge</h2>
+        <div class="kicker">Guadagnati</div>
+        <div id="homeBadgesEarned" class="badges-grid" style="margin-top:6px"></div>
+        <div class="kicker" style="margin-top:12px">Da conquistare</div>
+        <div id="homeBadgesLocked" class="badges-grid" style="margin-top:6px"></div>
       </div>
     </section>
 
-    <section id="progress" style="display:none">
+    <!-- ALLENAMENTO MIRATO -->
+    <section id="train" style="display:none;margin-top:16px">
+      <div class="card">
+        <h2>Seleziona argomento</h2>
+        <div id="topics" class="row" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="trainGo">Inizia allenamento</button>
+          <button class="btn ghost" id="resetTopic">Reset argomento</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAY -->
+    <section id="play" style="display:none;margin-top:16px">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <div id="topicLabel" class="kicker">Allenamento: Tutti gli argomenti</div>
+            <div style="font-size:14px;color:var(--muted)">Difficoltà
+              <span id="diffLabel">2</span> <span class="kicker" id="autoDiffTag" style="margin-left:6px"></span>
+            </div>
+          </div>
+          <div style="font-size:14px">Serie corretta: <b id="streak">0</b></div>
+        </div>
+        <div id="stem" style="margin-top:8px;font-size:20px;font-weight:600">—</div>
+        <div class="kicker" id="stemMeta"></div>
+        <div id="answerUI" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:10px;align-items:center">
+          <button class="btn" id="btnConfirm">Conferma</button>
+          <button class="btn ghost" id="btnNext" disabled>Prossima</button>
+          <button class="btn ghost" id="btnHint">Mostra hint</button>
+          <button class="btn ghost" id="btnSimilar">Esempio simile</button>
+        </div>
+        <div id="feedback" style="margin-top:10px"></div>
+        <div id="hints" class="hint" style="margin-top:10px;display:none"></div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="card" style="flex:1 1 320px">
+          <div> Oggi corrette: <b id="corToday2">0</b> / <b id="goalSmall">20</b></div>
+          <div class="progress" style="margin-top:6px"><div class="bar" id="goalBar2"></div></div>
+          <div class="kicker" id="goalHint"></div>
+        </div>
+        <div class="card" style="flex:1 1 320px">
+          <div>Badge</div>
+          <div id="badges" class="row" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROGRESSI -->
+    <section id="progress" style="display:none;margin-top:16px">
       <div class="card">
         <h2>Riepilogo</h2>
-        <div id="stats"></div>
+        <div>Accuratezza complessiva: <b id="accTot">0%</b> · Esercizi totali: <b id="totAns">0</b></div>
+        <div class="kicker" id="daysDone">Giorni obiettivo completato: 0</div>
+        <div id="badgesList" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="btnExport">Esporta CSV</button>
+        </div>
+        <div style="margin-top:10px" id="byTopic"></div>
+        <div style="margin-top:10px" id="suggestions" class="kicker"></div>
       </div>
-      <div class="card">
-        <h2>Per argomento</h2>
-        <div id="topicStats"></div>
-      </div>
-      <div class="card" id="masteryCard">
+
+      <div class="card" id="masteryCard" style="margin-top:12px">
         <h2>Comprensione per argomento</h2>
         <div class="kicker">Voto stimato 1–10 (pesi: recenza, difficoltà, consistenza)</div>
-        <div id="masteryGrid" class="mastery-grid"></div>
-        <div id="masteryTips" class="kicker"></div>
+        <div id="masteryGrid" class="mastery-grid" style="margin-top:8px"></div>
+        <div id="masteryTips" class="kicker" style="margin-top:10px"></div>
       </div>
     </section>
+
+    <!-- IMPOSTAZIONI -->
+    <section id="settings" style="display:none;margin-top:16px">
+      <div class="card">
+        <h2>Impostazioni</h2>
+        <div class="row" style="align-items:center;margin-top:8px">
+          <label class="toggle"><input type="checkbox" id="toggleAuto" checked> Avanzamento automatico dopo risposta corretta</label>
+        </div>
+        <div class="row" style="align-items:center;margin-top:8px">
+          <label class="toggle"><input type="checkbox" id="toggleAutoMC" checked> Conferma automatica nelle domande a scelta</label>
+        </div>
+        <div class="row" style="align-items:center;margin-top:8px">
+          <label class="toggle"><input type="checkbox" id="toggleAutoDiff" checked> Difficoltà automatica</label>
+        </div>
+        <div class="row" style="align-items:center;margin-top:8px">
+          <small class="kicker">Obiettivo adattivo: base 20, +10% se ieri non completato, reset a 20 se ieri completato.</small>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="btnReset">Reset dati</button>
+        </div>
+      </div>
+    </section>
+
+    <footer style="margin-top:24px;font-size:12px;color:var(--muted)">
+      Consigli: 10–15 min al giorno. Privacy: dati solo in locale.
+    </footer>
   </div>
 
+  <!-- Overlay obiettivo raggiunto -->
   <div class="overlay" id="overlay">
     <div class="modal">
-      <h2>Obiettivo completato 🎉</h2>
-      <p>Hai raggiunto l’obiettivo di oggi!</p>
-      <button class="btn">OK</button>
+      <h2>🎉 Obiettivo raggiunto!</h2>
+      <div class="kicker">Hai raggiunto <b id="goalCount"></b>/<b id="goalCountTot"></b> risposte corrette oggi</div>
+      <div class="kicker">Accuracy: <b id="goalAcc"></b>%</div>
+      <button class="btn" id="btnHomeNow">Torna alla Home</button>
+      <div class="kicker" style="margin-top:8px">Torno automaticamente alla Home tra <span id="countdown">5</span>s…</div>
     </div>
   </div>
 
+  <!-- LOGICA -->
   <script src="app.js"></script>
 </body>
 </html>
