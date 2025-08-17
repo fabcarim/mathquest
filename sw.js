@@ -1,34 +1,20 @@
-// sw.js v17 – cache essenziale e sicura
-const CACHE_NAME = 'mathquest-v17';
+// sw.js v18 – cache essenziale
+const CACHE_NAME = 'mathquest-v18';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=17',
-  './app.js?v=17',
-  './manifest.webmanifest?v=17'
+  './styles.css?v=18',
+  './app.js?v=18',
+  './manifest.webmanifest?v=18'
 ];
-
-self.addEventListener('install', (e)=>{
+self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)));
 });
-self.addEventListener('activate', (e)=>{
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))))
-  );
+self.addEventListener('activate', e=>{
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));
 });
-self.addEventListener('fetch', (e)=>{
-  const req=e.request;
+self.addEventListener('fetch', e=>{
   e.respondWith(
-    caches.match(req).then(r => r || fetch(req).then(resp=>{
-      // facoltativo: cache dinamica solo GET same-origin
-      try{
-        const url = new URL(req.url);
-        if(req.method==='GET' && url.origin===location.origin){
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then(c=>c.put(req, clone));
-        }
-      }catch(_){}
-      return resp;
-    }).catch(()=>caches.match('./index.html')))
+    caches.match(e.request).then(r => r || fetch(e.request).catch(()=>caches.match('./index.html')))
   );
 });
