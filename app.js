@@ -1,4 +1,4 @@
-/* MathQuest – app.js v16-dev */
+/* MathQuest – app.js v16.1 */
 
 function $(id){ return document.getElementById(id); }
 function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
@@ -97,7 +97,10 @@ function sanitizeChoices(stem, choices, correct){
 
 function makeQ(topic,type,stem,meta,answer,choices,hints,solution){ return {topic,type,stem,meta,answer,choices,hints,solution}; }
 
+/* ==== Generatori di domande (immutati) ==== */
 const Builders = {
+  /* ... identico alla v16: interi, decimali, frazioni, percentuali, proporzioni,
+     equazioni, geometria, misure, potenze, radici, numero teoria, problemi, statistiche ... */
   "Calcolo interi": D => {
     const op = randChoice(['+','-','×','÷']); let a,b,stem,meta='',ans;
     if(op==='+'){a=randInt(100*D,300*D);b=randInt(50*D,150*D);ans=a+b;stem='Calcola la somma'; meta='Rispondi con un numero intero. Operazione: '+a+' + '+b;}
@@ -180,6 +183,7 @@ const Builders = {
   }
 };
 
+/* ==== UI & stato ==== */
 function setScreen(name){
   ['home','train','play','progress','settings'].forEach(id => $(id).classList.add('hidden'));
   $(name).classList.remove('hidden');
@@ -194,6 +198,14 @@ function renderHeader(){
   const dl=$('diffLabel'); if(dl) dl.textContent=state.difficulty;
   const st=$('streak'); if(st) st.textContent=state.streak;
   const tl=$('topicLabel'); if(tl) tl.textContent = 'Allenamento: ' + (state.topicFilter || 'Tutti gli argomenti');
+}
+
+/* NEW: funzione idempotente per aggiornare i valori dell’overlay */
+function updateOverlayFields(corToday, goal, accAll){
+  const a=$('goalCount'), b=$('goalCountTot'), c=$('goalAcc');
+  if(a) a.textContent = typeof corToday==='number' ? corToday : '';
+  if(b) b.textContent = typeof goal==='number' ? goal : '';
+  if(c) c.textContent = typeof accAll==='number' ? accAll : '';
 }
 
 function renderStats(){
@@ -215,6 +227,9 @@ function renderStats(){
   $('goalHint').textContent = left>0 ? ('Ti mancano '+left+' risposte corrette per l\'obiettivo di oggi.') : 'Obiettivo raggiunto!';
   $('goalNote').textContent = 'Se non completi oggi, domani salirà a circa '+Math.ceil(state.dailyGoal*1.10)+' (+10%)';
   $('daysDone').textContent = 'Giorni obiettivo completato: '+state.completions.length;
+
+  // NEW: aggiorna sempre anche l’overlay (così non resta mai vuoto)
+  updateOverlayFields(corToday, state.dailyGoal, accAll);
 }
 
 function makeQuestion(){
@@ -253,18 +268,20 @@ function maybeCompleteGoal(){
   if(corToday >= state.dailyGoal && !state.goalShownToday){
     state.goalShownToday = true;
     const accAll = state.answered? Math.round(100*state.correct/state.answered):0;
-    $('goalCount').textContent = corToday;
-    $('goalCountTot').textContent = state.dailyGoal;
-    $('goalAcc').textContent = accAll;
+
+    // NEW: valorizza SEMPRE i campi prima di mostrare l’overlay
+    updateOverlayFields(corToday, state.dailyGoal, accAll);
+
     const key = dayKey();
     if(!state.completions.includes(key)) state.completions.push(key);
     addBadge('daily_hero','Daily Hero');
     addBadge('daily_goal_'+key, 'Obiettivo Giornaliero ('+key+')');
     save();
+
     const overlay=$('overlay'); overlay.classList.remove('hidden');
     let n=5; $('countdown').textContent=n;
-    const int=setInterval(()=>{ n--; $('countdown').textContent=n; if(n<=0){ clearInterval(int); overlay.classList.add('hidden'); setScreen('home'); } },1000);
-    $('btnHomeNow').onclick=()=>{ overlay.classList.add('hidden'); clearInterval(int); setScreen('home'); };
+    const int=setInterval(()=>{ n--; $('countdown').textContent=n; if(n<=0){ clearInterval(int); overlay.classList.add('hidden'); setScreen('home'); renderStats(); } },1000);
+    $('btnHomeNow').onclick=()=>{ overlay.classList.add('hidden'); clearInterval(int); setScreen('home'); renderStats(); };
   }
 }
 
@@ -339,152 +356,4 @@ function streakInfo(days){
     if(prev){
       const n=new Date(prev); n.setDate(n.getDate()+1);
       const y=n.getFullYear(), m=('0'+(n.getMonth()+1)).slice(-2), da=('0'+n.getDate()).slice(-2);
-      const nextKey=y+'-'+m+'-'+da;
-      if(d===nextKey){ cur+=1; } else { cur=1; }
-    } else { cur=1; }
-    if(cur>best) best=cur; prev=d;
-  });
-  return {best};
-}
-function ensureCatalogBadges(){
-  badgeCatalog.forEach(b=>{
-    try{
-      if(b.check(state) && !state.badges.some(x=>x.id===b.id)) addBadge(b.id,b.label);
-    }catch(e){}
-  });
-}
-function renderHomeBadges(){
-  const earnedC=$('homeBadgesEarned'), lockedC=$('homeBadgesLocked'); if(!earnedC||!lockedC) return;
-  earnedC.innerHTML=''; lockedC.innerHTML='';
-  const prog={}; badgeCatalog.forEach(b=>{ let t='0/1'; try{ t=b.progress(state);}catch(e){} prog[b.id]=t; });
-  const earnedIds={}; state.badges.forEach(b=> earnedIds[b.id]=true);
-  badgeCatalog.forEach(b=>{
-    const isEarned=!!earnedIds[b.id];
-    const tile=document.createElement('div'); tile.className='badge-tile'+(isEarned?'':' locked');
-    const pct=progressPercent(prog[b.id]||'0/1');
-    tile.innerHTML='<div class="badge-title">'+(isEarned?'🏅':'🔒')+' '+b.label+'</div>'+
-      '<div class="badge-cat">'+b.cat+'</div>'+
-      '<div style="font-size:13px">'+b.desc+'</div>'+
-      '<div class="progress"><div class="bar" style="width:'+pct+'%"></div></div>'+
-      '<div class="kicker">'+(prog[b.id]||'')+'</div>';
-    (isEarned? earnedC : lockedC).appendChild(tile);
-  });
-}
-
-function masteryPerTopic(history){
-  const by={};
-  history.forEach((h,i)=>{
-    if(!by[h.topic]) by[h.topic]=[];
-    by[h.topic].push({ok:!!h.ok, ts:h.ts, diff:(typeof h.diff==='number'?h.diff:(state.difficulty||2)), i});
-  });
-  const out={};
-  Object.keys(by).forEach(topic=>{
-    const arr=by[topic].slice().sort((a,b)=>b.ts-a.ts).slice(0,50);
-    if(arr.length===0){ out[topic]={score:0,voto:1,acc:0,n:0}; return; }
-    let wSum=0, okW=0, diffW=0;
-    arr.forEach((item,k)=>{
-      const w=1/Math.sqrt(k+1); wSum+=w; okW+=(item.ok?1:0)*w; const df=(item.diff===3?1.16:(item.diff===2?1.08:1.0)); diffW+=(item.ok?1:0)*w*df;
-    });
-    const accRecency = okW/wSum;
-    const accWithDiff = diffW/wSum;
-    const last10 = arr.slice(0,10);
-    const ones = last10.map(x=>x.ok?1:0);
-    const mean = ones.reduce((a,b)=>a+b,0)/Math.max(1,ones.length);
-    const variance = ones.reduce((a,b)=>a+Math.pow(b-mean,2),0)/Math.max(1,ones.length);
-    const std = Math.sqrt(variance);
-    const consistencyPenalty = Math.min(0.12, std*0.20);
-    const base = accWithDiff*100;
-    const score = Math.max(0, Math.min(100, base*(1-consistencyPenalty)));
-    let voto = 1 + 9 * Math.pow(score/100, 0.85); voto = Math.max(1, Math.min(10, voto));
-    out[topic]={score:Math.round(score), voto:Math.round(voto*10)/10, acc:Math.round(accRecency*100), n:arr.length};
-  });
-  return out;
-}
-function renderMastery(){
-  const grid=$('masteryGrid'); if(!grid) return; grid.innerHTML='';
-  const m=masteryPerTopic(state.history);
-  const entries=Object.keys(m).map(t=>({topic:t,data:m[t]})).sort((a,b)=>b.data.voto-a.data.voto);
-  if(entries.length===0){ grid.innerHTML='<div class="kicker">Ancora nessun dato. Rispondi ad alcune domande!</div>'; const mt=$('masteryTips'); if(mt) mt.textContent=''; return; }
-  entries.forEach(e=>{
-    const d=e.data; const cls=(d.voto>=8?'mastery-ok':(d.voto>=6?'mastery-mid':'mastery-low'));
-    const tile=document.createElement('div'); tile.className='mastery-tile';
-    tile.innerHTML='<div class="mastery-head"><div class="mastery-topic">'+e.topic+'</div><div class="mastery-badge '+cls+'">'+d.voto.toFixed(1)+'</div></div>'+
-      '<div class="mastery-bar"><div style="width:'+d.score+'%"></div></div>'+
-      '<div class="mastery-sub">'+d.acc+'% recenti • '+d.n+' risposte considerate</div>';
-    grid.appendChild(tile);
-  });
-  const worst=entries.slice().reverse().slice(0,2).map(x=>x.topic);
-  const tips=$('masteryTips'); if(tips) tips.textContent = worst.length?('Suggerimento: 10 minuti su '+worst.join(' e ')+'.'):'';
-}
-
-// Export CSV
-$('btnExport').onclick=()=>{
-  const rows=[['timestamp','day','topic','stem','meta','given','answer','ok','diff']];
-  state.history.forEach(h=> rows.push([new Date(h.ts).toISOString(), dayKey(h.ts), h.topic, h.stem, h.meta||'', h.given, h.answer, h.ok, h.diff||'']));
-  const csv=rows.map(r=> r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='mathquest_report.csv'; a.click(); URL.revokeObjectURL(url);
-};
-
-// Navigation & controls
-$('btnHome').onclick=()=> setScreen('home');
-$('btnPlay').onclick=()=>{ setScreen('play'); renderStats(); renderQuestion(); $('btnNext').disabled=true; };
-$('btnTrain').onclick=()=>{ setScreen('train'); renderStats(); };
-$('btnProg').onclick=()=>{ setScreen('progress'); renderStats(); renderByTopic(); renderBadgesList(); renderMastery(); };
-$('btnSettings').onclick=()=>{ setScreen('settings'); renderStats(); };
-$('startQuick').onclick=()=>{ setScreen('play'); renderStats(); renderQuestion(); $('btnNext').disabled=true; };
-$('startTrain').onclick=()=> setScreen('train');
-$('trainGo').onclick=()=>{ setScreen('play'); renderStats(); renderQuestion(); $('btnNext').disabled=true; };
-$('resetTopic').onclick=()=>{ state.topicFilter=null; Array.from($('topics').children).forEach(x=>x.classList.remove('active')); save(); renderHeader(); };
-$('btnConfirm').onclick=confirmAnswer;
-$('btnNext').onclick=()=>{ if(!state.answeredThis){ $('feedback').innerHTML="<div class='bad'><b>Prima prova a rispondere.</b> Non puoi saltare senza fare un tentativo.</div>"; return; } nextQuestion(); };
-$('btnHint').onclick=toggleHint;
-$('btnSimilar').onclick=similar;
-$('btnReset').onclick=()=>{ if(confirm('Cancellare tutti i dati?')){ localStorage.removeItem('mqLiteState'); location.reload(); } };
-$('toggleAuto').onchange=e=>{ state.autoAdvance=e.target.checked; save(); };
-$('toggleAutoMC').onchange=e=>{ state.autoConfirmMC=e.target.checked; save(); };
-$('toggleAutoDiff').onchange=e=>{ state.autoDiff=e.target.checked; save(); autoAdjustDifficulty(); };
-
-// Levels manuali
-const levels=$('levels'); [1,2,3].forEach(d=>{
-  const b=document.createElement('button'); b.className='pill'; b.textContent=d;
-  b.onclick=()=>{ state.difficulty=d; document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); b.classList.add('active'); $('diffLabel').textContent=d; save(); };
-  if(d===state.difficulty) b.classList.add('active'); levels.appendChild(b);
-});
-
-// Topics UI
-const topicsEl=$('topics'); topicsList.forEach(t=>{
-  const b=document.createElement('button'); b.className='pill'; b.textContent=t;
-  b.onclick=()=>{ if(state.topicFilter===t){ state.topicFilter=null; b.classList.remove('active'); } else { state.topicFilter=t; Array.from(topicsEl.children).forEach(x=>x.classList.remove('active')); b.classList.add('active'); } save(); renderHeader(); };
-  topicsEl.appendChild(b);
-});
-const quick=$('quickTopics'); topicsList.forEach(t=>{
-  const b=document.createElement('button'); b.className='pill'; b.textContent=t;
-  b.onclick=()=>{ state.topicFilter=t; save(); renderHeader(); setScreen('play'); renderStats(); renderQuestion(); $('btnNext').disabled=true; };
-  quick.appendChild(b);
-});
-$('clearTopic').onclick=()=>{ state.topicFilter=null; save(); renderHeader(); };
-
-function renderByTopic(){
-  const wrap=$('byTopic'); if(!wrap) return; wrap.innerHTML='';
-  const accBy={}; state.history.forEach(h=>{ if(!accBy[h.topic]) accBy[h.topic]={c:0,t:0}; accBy[h.topic].t++; if(h.ok) accBy[h.topic].c++; });
-  if(Object.keys(accBy).length===0){ wrap.textContent='Ancora nessun dato. Fai qualche esercizio!'; $('suggestions').textContent=''; return; }
-  Object.keys(accBy).forEach(t=>{
-    const d=accBy[t]; const pct=Math.round(100*d.c/d.t);
-    const card=document.createElement('div'); card.className='card';
-    card.innerHTML='<div style="font-weight:600">'+t+'</div><div class="kicker">'+d.c+'/'+d.t+' corrette ('+pct+'%)</div><div class="progress mt6"><div class="bar" style="width:'+pct+'%"></div></div>';
-    wrap.appendChild(card);
-  });
-  const sorted=Object.keys(accBy).map(k=>[k,accBy[k]]).sort((a,b)=>(a[1].c/a[1].t)-(b[1].c/b[1].t));
-  const low=sorted.slice(0,2).map(x=>x[0]); $('suggestions').textContent = low.length?('Suggerimento: fai 10 min su '+low.join(' e ')+'.'):'';
-}
-
-// Init
-(function init(){
-  load(); rollDailyGoal(); renderStats();
-  $('toggleAuto').checked=!!state.autoAdvance;
-  $('toggleAutoMC').checked=!!state.autoConfirmMC;
-  $('toggleAutoDiff').checked=!!state.autoDiff;
-  autoAdjustDifficulty();
-  renderBadges(); renderBadgesList(); renderHomeBadges();
-})();
+      const nextKey
