@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>MathQuest · 1ª–2ª media (v18.4)</title>
+  <title>MathQuest · 1ª–2ª media (v19.03)</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,15 +10,15 @@
   <meta name="apple-mobile-web-app-title" content="MathQuest">
   <meta name="format-detection" content="telephone=no">
 
-  <link rel="manifest" href="manifest.webmanifest?v=184">
+  <link rel="manifest" href="manifest.webmanifest?v=1903">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=184">
+  <link rel="stylesheet" href="styles.css?v=1903">
 </head>
 <body>
   <div class="wrap">
     <header class="row space-between align-center">
       <h1 class="app-title">MathQuest <span class="kicker">1ª–2ª media</span></h1>
-      <div class="version-badge">v18.4</div>
+      <div class="version-badge">v19.03</div>
     </header>
 
     <nav class="row gap nav-grid">
@@ -147,7 +147,7 @@
 
     <footer class="footer">
       <div>Consigli: 10–15 min al giorno. Privacy: dati solo in locale.</div>
-      <div class="muted">Build: <b>v18.4</b></div>
+      <div class="muted">Build: <b>v19.03</b></div>
     </footer>
   </div>
 
@@ -165,11 +165,11 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('sw.js?v=184').catch(function(e){ console.log('SW reg error', e); });
+        navigator.serviceWorker.register('sw.js?v=1903').catch(function(e){ console.log('SW reg error', e); });
       });
     }
   </script>
 
-  <script src="app.js?v=184" defer></script>
+  <script src="app.js?v=1903" defer></script>
 </body>
 </html>

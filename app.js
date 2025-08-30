@@ -1,4 +1,4 @@
-/* MathQuest – app.js v18.4 (render domanda+risposte visibili) */
+/* MathQuest – app.js v19.03 (render domanda+risposte visibili) */
 (function(){
   // ===== Util =====
   function $(id){ return document.getElementById(id); }
