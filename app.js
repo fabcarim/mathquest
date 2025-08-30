@@ -1,4 +1,4 @@
-/* MathQuest – app.js v18.3 (render domanda+risposte visibili) */
+/* MathQuest – app.js v18.4 (render domanda+risposte visibili) */
 (function(){
   // ===== Util =====
   function $(id){ return document.getElementById(id); }
@@ -16,6 +16,13 @@
   function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 
+  var DEFAULT_ACCENT = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+  var TOPICS = [
+    {id:'arit', label:'Aritmetica', color:'#2563eb'},
+    {id:'fra', label:'Frazioni', color:'#10b981'},
+    {id:'geom', label:'Geometria', color:'#f59e0b'}
+  ];
+
   var state = {
     screen:'home',
     difficulty: 2,
@@ -23,8 +30,65 @@
     selected: null,
     streak:0,
     correctToday:0,
-    dailyGoal:20
+    dailyGoal:20,
+    topic:null,
+    autoAdvance:false
   };
+
+  function renderLevels(){
+    var wrap = $('levels');
+    if(!wrap) return;
+    wrap.innerHTML='';
+    [1,2,3].forEach(function(l){
+      var btn = el('button', {'class':'btn ghost','data-level':String(l),'type':'button','text':String(l)});
+      wrap.appendChild(btn);
+    });
+    selectLevel(state.difficulty);
+  }
+
+  function renderTopics(){
+    var wrap = $('topics');
+    if(!wrap) return;
+    wrap.innerHTML='';
+    TOPICS.forEach(function(t){
+      var btn = el('button', {'class':'btn ghost topic','data-topic':t.id,'type':'button','text':t.label});
+      wrap.appendChild(btn);
+    });
+    setTopic(state.topic ? state.topic.id : null);
+  }
+
+  function selectLevel(lvl){
+    state.difficulty = Number(lvl);
+    var nodes = document.querySelectorAll('#levels .btn');
+    Array.prototype.forEach.call(nodes,function(b){
+      if(Number(b.getAttribute('data-level'))===state.difficulty){ b.classList.remove('ghost'); }
+      else { b.classList.add('ghost'); }
+    });
+    if(state.screen==='play') updatePlayHeader();
+  }
+
+  function setTopic(id){
+    var root = document.documentElement;
+    if(id){
+      var t = TOPICS.find(function(x){ return x.id===id; });
+      state.topic = t || null;
+    }else{
+      state.topic = null;
+    }
+    root.style.setProperty('--accent', state.topic ? state.topic.color : DEFAULT_ACCENT);
+    var nodes = document.querySelectorAll('#topics .btn');
+    Array.prototype.forEach.call(nodes,function(b){
+      if(state.topic && b.getAttribute('data-topic')===state.topic.id){ b.classList.remove('ghost'); }
+      else { b.classList.add('ghost'); }
+    });
+    if(state.screen==='play') updatePlayHeader();
+  }
+
+  function updatePlayHeader(){
+    var lbl = $('topicLabel');
+    if(lbl) lbl.textContent = 'Allenamento: '+(state.topic?state.topic.label:'Tutti gli argomenti');
+    var d = $('diffLabel'); if(d) d.textContent = String(state.difficulty);
+  }
 
   // ====== Screens ======
   function show(id){
@@ -34,9 +98,11 @@
       if(s===id){ elx.classList.remove('hidden'); }
       else { elx.classList.add('hidden'); }
     });
+    state.screen = id;
     if(id==='play'){
       if(!state.q) newQuestion(); // genera subito
       renderQuestion();
+      updatePlayHeader();
     }
     window.scrollTo(0,0);
   }
@@ -101,7 +167,7 @@
       ans.appendChild(inp);
       setTimeout(function(){ inp.focus(); }, 50);
     }
-
+    var bc = $('btnConfirm'); if(bc) bc.disabled = false;
     $('btnNext').disabled = true;
   }
 
@@ -114,22 +180,33 @@
   }
 
   function checkAnswer(){
+    var bc = $('btnConfirm'); if(bc) bc.disabled = true;
     var user;
     if(state.q.type==='mc'){
       user = state.selected;
-      if(user==null){ toast('Seleziona una risposta'); return false; }
+      if(user==null){ toast('Seleziona una risposta'); if(bc) bc.disabled=false; return false; }
     }else{
       var inp = $('answerInput');
       user = inp ? inp.value : '';
-      if(user===''){ toast('Inserisci una risposta'); return false; }
+      if(user===''){ toast('Inserisci una risposta'); if(bc) bc.disabled=false; return false; }
     }
     var isCorrect = Number(user) === Number(state.q.correct);
     var fb = $('feedback');
     fb.innerHTML = isCorrect
       ? '<div class="ok">✅ Corretto!</div>'
       : '<div class="bad">❌ Non esatto. Risposta: <b>'+state.q.correct+'</b></div>';
-    $('btnNext').disabled = false;
-    if(isCorrect){ state.streak++; state.correctToday++; } else { state.streak = 0; }
+    if(isCorrect){
+      state.streak++; state.correctToday++;
+      if(state.autoAdvance){
+        $('btnNext').disabled = true;
+        setTimeout(function(){ newQuestion(); renderQuestion(); },700);
+      }else{
+        $('btnNext').disabled = false;
+      }
+    }else{
+      state.streak = 0;
+      $('btnNext').disabled = false;
+    }
     updateProgress();
     return isCorrect;
   }
@@ -162,11 +239,18 @@
 
       // nav
       if(id==='btnHome'){ e.preventDefault(); show('home'); return; }
-      if(id==='btnPlay'){ e.preventDefault(); show('play'); return; }
+      if(id==='btnPlay'){ e.preventDefault(); setTopic(null); show('play'); return; }
       if(id==='btnTrain'){ e.preventDefault(); show('train'); return; }
 
-      if(id==='startQuick'){ e.preventDefault(); show('play'); newQuestion(); renderQuestion(); toast('Via!'); return; }
+      if(id==='startQuick'){ e.preventDefault(); setTopic(null); show('play'); newQuestion(); renderQuestion(); toast('Via!'); return; }
+      if(id==='startTrain'){ e.preventDefault(); show('train'); return; }
       if(id==='trainGo'){ e.preventDefault(); show('play'); newQuestion(); renderQuestion(); return; }
+      if(id==='btnProg'){ e.preventDefault(); alert('Corrette oggi: '+state.correctToday+'\nStreak: '+state.streak); return; }
+      if(id==='btnSettings'){ e.preventDefault(); state.autoAdvance=!state.autoAdvance; toast('Avanzamento automatico '+(state.autoAdvance?'ON':'OFF')); return; }
+
+      if(id==='resetTopic' || id==='clearTopic'){ e.preventDefault(); setTopic(null); return; }
+      if(t.dataset && t.dataset.level){ e.preventDefault(); selectLevel(t.dataset.level); return; }
+      if(t.dataset && t.dataset.topic){ e.preventDefault(); setTopic(t.dataset.topic); return; }
 
       // choices
       if(t.classList.contains('choice')){ e.preventDefault(); selectChoice(t); return; }
@@ -182,6 +266,8 @@
   }
 
   function boot(){
+    renderLevels();
+    renderTopics();
     bindClicks();
     updateProgress();
   }

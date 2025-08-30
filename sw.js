@@ -1,5 +1,5 @@
-// sw.js v18.3 – cache-busting
-const VERSION = 'v183';
+// sw.js v18.4 – cache-busting
+const VERSION = 'v184';
 const CACHE_NAME = `mathquest-${VERSION}`;
 
 const scopeURL = new URL(self.registration.scope);
