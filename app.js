@@ -224,10 +224,12 @@
   }
 
   function toast(text){
-    var fb = $('feedback');
-    if(!fb) return;
-    fb.innerHTML = '<div class="ok">'+text+'</div>';
-    setTimeout(function(){ if(fb) fb.innerHTML=''; }, 1000);
+    var t = $('toast');
+    if(!t) return;
+    t.textContent = text;
+    t.style.display = 'block';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function(){ t.style.display = 'none'; }, 1500);
   }
 
   // ====== Event delegation ======
