@@ -1,4 +1,4 @@
-/* MathQuest – app.js v18.4 (render domanda+risposte visibili) */
+/* MathQuest – app.js v19.03 (render domanda+risposte visibili) */
 (function(){
   // ===== Util =====
   function $(id){ return document.getElementById(id); }
@@ -301,7 +301,7 @@
       });
       ans.appendChild(wrap);
     }else{
-      var inp = el('input', {'class':'answer', 'type':'number', 'id':'answerInput', 'inputmode':'numeric'});
+      var inp = el('input', {'class':'answer', 'type':'text', 'id':'answerInput', 'inputmode':'decimal'});
       ans.appendChild(inp);
       setTimeout(function(){ inp.focus(); }, 50);
     }
@@ -328,7 +328,18 @@
       user = inp ? inp.value : '';
       if(user===''){ toast('Inserisci una risposta'); if(bc) bc.disabled=false; return false; }
     }
-    var isCorrect = Number(user) === Number(state.q.correct);
+    function normalize(v){
+      if(typeof v === 'string'){
+        v = v.trim().replace(',', '.');
+      }
+      return v;
+    }
+    var userNorm = normalize(user);
+    var correctNorm = normalize(state.q.correct);
+    var userNum = Number(userNorm);
+    var correctNum = Number(correctNorm);
+    var isNumeric = !isNaN(userNum) && !isNaN(correctNum);
+    var isCorrect = isNumeric ? userNum === correctNum : String(userNorm) === String(correctNorm);
     var fb = $('feedback');
     fb.innerHTML = isCorrect
       ? '<div class="ok">✅ Corretto!</div>'
