@@ -162,6 +162,14 @@
     </div>
   </div>
 
+  <div class="overlay" id="badgeOverlay" aria-hidden="true" style="display:none">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="badgeTitle">
+      <h2 id="badgeTitle">🏅 Nuovo badge!</h2>
+      <div class="kicker">Hai sbloccato: <b id="badgeName"></b></div>
+      <button class="btn" id="badgeClose">Fantastico!</button>
+    </div>
+  </div>
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function(){
