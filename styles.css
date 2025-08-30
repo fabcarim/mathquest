@@ -66,7 +66,8 @@ input.answer{
 
 /* Badge / Mastery */
 .badges-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; }
-.badge{ display:inline-flex; align-items:center; gap:8px; border:1px solid #111; border-radius:999px; padding:6px 10px; background:#fff; }
+.badge{ display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:6px 10px; color:#fff; font-weight:700; }
+.badge.muted{ filter:grayscale(1); opacity:.5; color:#fff; }
 
 .mastery-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:10px; }
 .mastery-tile{ border:1px solid #111; border-radius:14px; background:#fff; padding:12px; }

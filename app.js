@@ -42,6 +42,8 @@
     {id:'doubleGoal', label:'Raddoppia obiettivo', check:function(){ return state.correctToday >= state.dailyGoal*2; }}
   ];
 
+  var BADGE_COLORS = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899'];
+
   var state = {
     screen:'home',
     difficulty: 2,
@@ -372,6 +374,23 @@
     setTimeout(function(){ if(fb) fb.innerHTML=''; }, 1000);
   }
 
+  function celebrateBadge(name){
+    var ov = $('badgeOverlay');
+    var lbl = $('badgeName');
+    if(!ov || !lbl) return;
+    lbl.textContent = name;
+    ov.style.display = 'flex';
+    ov.setAttribute('aria-hidden','false');
+    setTimeout(hideBadgeOverlay, 3000);
+  }
+
+  function hideBadgeOverlay(){
+    var ov = $('badgeOverlay');
+    if(!ov) return;
+    ov.style.display = 'none';
+    ov.setAttribute('aria-hidden','true');
+  }
+
   function renderBadges(){
     var play = $('badges'),
         earnedHome = $('homeBadgesEarned'),
@@ -380,9 +399,10 @@
         lockedProg = $('progBadgesLocked');
     if(play) play.innerHTML='';
     [earnedHome,lockedHome,earnedProg,lockedProg].forEach(function(n){ if(n) n.innerHTML=''; });
-    BADGES.forEach(function(b){
+    BADGES.forEach(function(b, i){
       var earned = state.badges.indexOf(b.id)!==-1;
       var badge = el('div', {'class':'badge'+(earned?'':' muted'), 'text':b.label});
+      badge.style.backgroundColor = BADGE_COLORS[i % BADGE_COLORS.length];
       if(play) play.appendChild(badge.cloneNode(true));
       if(earned){
         if(earnedHome) earnedHome.appendChild(badge.cloneNode(true));
@@ -399,7 +419,7 @@
       if(state.badges.indexOf(b.id)===-1 && b.check()){
         state.badges.push(b.id);
         localStorage.setItem('badges', JSON.stringify(state.badges));
-        toast('Nuovo badge: '+b.label+'!');
+        celebrateBadge(b.label);
         renderBadges();
       }
     });
@@ -437,6 +457,7 @@
       if(id==='btnHint'){ e.preventDefault(); var h=$('hints'); h.textContent='Suggerimento: prova a scomporre il calcolo.'; h.classList.remove('hidden'); return; }
       if(id==='btnSimilar'){ e.preventDefault(); toast('Esempio simile: tra poco!'); return; }
       if(id==='btnHomeNow'){ e.preventDefault(); show('home'); return; }
+      if(id==='badgeClose'){ e.preventDefault(); hideBadgeOverlay(); return; }
     }, {passive:false});
   }
 
