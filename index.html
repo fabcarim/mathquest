@@ -223,6 +223,10 @@ function approxEqual(a,b,eps){ if(eps===undefined) eps=1e-6; return Math.abs(Num
 function shuffle(arr){ return arr.map(function(v){return [Math.random(),v];}).sort(function(a,b){return a[0]-b[0];}).map(function(x){return x[1];}); }
 function fmtUnit(val,unit){ return String(val)+' '+unit; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function localize(str){
+  if(str===null || str===undefined) return '';
+  return String(str).replace(/(\d)\.(\d)/g, '$1,$2');
+}
 
 var topicAccent = {
   "Calcolo interi":"var(--accent2)",
@@ -674,12 +678,12 @@ function makeQuestion(){
 function renderQuestion(){
   var q = makeQuestion(); state.question = q; state.input=''; state.answeredThis=false; applyAccentForTopic(q.topic);
   $('topicLabel').textContent = state.topicFilter? ('Allenamento: '+state.topicFilter) : 'Allenamento: Tutti gli argomenti';
-  $('stem').textContent = q.stem; $('stemMeta').textContent = q.meta||''; $('feedback').innerHTML=''; $('hints').style.display='none'; $('hints').textContent = (q.hints||[]).map(function(h){return '• '+h;}).join('\n');
+  $('stem').textContent = localize(q.stem); $('stemMeta').textContent = localize(q.meta||''); $('feedback').innerHTML=''; $('hints').style.display='none'; $('hints').textContent = (q.hints||[]).map(function(h){return '• '+localize(h);}).join('\n');
   var ui = $('answerUI'); ui.innerHTML=''; var nextBtn=$('btnNext'); if(nextBtn) nextBtn.disabled=true;
   if(q.type==='mc'){
     var grid=document.createElement('div'); grid.className='choices-grid';
     q.choices.forEach(function(ch){
-      var b=document.createElement('button'); b.setAttribute('type','button'); b.className='choice'; b.textContent=ch;
+      var b=document.createElement('button'); b.setAttribute('type','button'); b.className='choice'; b.textContent=localize(ch);
       b.onclick=function(){ state.input=String(ch); Array.prototype.forEach.call(grid.children, function(x){x.classList.remove('active');}); b.classList.add('active'); if(state.autoConfirmMC){ setTimeout(function(){ confirmAnswer(); },150); } else if(nextBtn) { nextBtn.disabled=false; } };
       grid.appendChild(b);
     });
@@ -717,12 +721,22 @@ function maybeCompleteGoal(){
 function confirmAnswer(){
   if(!state.question || state.answeredThis) return;
   var ok=false; var ans = state.question.answer;
-  if(typeof ans==='number'){ ok = approxEqual(Number(state.input), ans); }
-  else { ok = String(state.input).trim()===String(ans).trim(); }
+  if(typeof ans==='number'){
+    var num = Number(String(state.input).replace(',', '.'));
+    ok = approxEqual(num, ans);
+  } else {
+    ok = String(state.input).trim()===String(ans).trim();
+  }
 
   state.answered++;
   if(ok){ state.correct++; state.streak++; $('feedback').innerHTML = "<div class='ok'><b>Corretto!</b> Ben fatto.</div>"; maybeCompleteGoal(); setTimeout(function(){ autoAdjustDifficulty(); }, 0); if(state.autoAdvance){ setTimeout(function(){ renderQuestion(); }, 900); } }
-  else { state.streak=0; $('feedback').innerHTML = "<div class='bad'><b>Non è corretto.</b> Proviamo insieme.<br><br><b>Soluzione attesa:</b> "+state.question.solution+(state.question.meta?("<br><br><b>Richiesta:</b> "+state.question.meta):"")+"</div>"; setTimeout(function(){ autoAdjustDifficulty(); }, 0); }
+  else {
+    state.streak=0;
+    var sol = localize(state.question.solution);
+    var meta = state.question.meta ? ("<br><br><b>Richiesta:</b> "+localize(state.question.meta)) : "";
+    $('feedback').innerHTML = "<div class='bad'><b>Non è corretto.</b> Proviamo insieme.<br><br><b>Soluzione attesa:</b> "+sol+meta+"</div>";
+    setTimeout(function(){ autoAdjustDifficulty(); }, 0);
+  }
 
   state.history.push({ topic: state.question.topic, type: state.question.type, stem: state.question.stem, meta: state.question.meta, given: state.input, answer: state.question.answer, ok: ok, ts: Date.now() });
 
