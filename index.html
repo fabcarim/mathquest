@@ -106,14 +106,14 @@
 
         <div id="answerUI" class="mt10"></div>
 
+        <div id="feedback" class="mt10"></div>
+
         <div class="row gap mt10 align-center stack">
           <button class="btn" id="btnConfirm">Conferma</button>
           <button class="btn ghost" id="btnNext" disabled>Prossima</button>
           <button class="btn ghost" id="btnHint">Mostra hint</button>
           <button class="btn ghost" id="btnSimilar">Esempio simile</button>
         </div>
-
-        <div id="feedback" class="mt10"></div>
         <div id="hints" class="hint mt10 hidden"></div>
       </div>
 
@@ -127,6 +127,21 @@
           <div>Badge</div>
           <div id="badges" class="row gap mt6 wrap"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- PROGRESSI -->
+    <section id="progress" class="screen hidden">
+      <div class="card">
+        <h2>Progressi</h2>
+        <div>Corrette oggi: <b id="progCorrect">0</b> / <b id="progGoal">20</b></div>
+      </div>
+      <div class="card">
+        <h2>🏅 Badge</h2>
+        <div class="kicker">Guadagnati</div>
+        <div id="progBadgesEarned" class="badges-grid mt6"></div>
+        <div class="kicker mt12">Da conquistare</div>
+        <div id="progBadgesLocked" class="badges-grid mt6"></div>
       </div>
     </section>
 
