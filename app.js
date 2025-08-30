@@ -28,8 +28,18 @@
   ];
 
   var BADGES = [
+    {id:'cor1', label:'1 risposta corretta', check:function(){ return state.totalCorrect >= 1; }},
     {id:'cor10', label:'10 risposte corrette', check:function(){ return state.totalCorrect >= 10; }},
-    {id:'streak5', label:'Streak di 5', check:function(){ return state.streak >= 5; }}
+    {id:'cor50', label:'50 risposte corrette', check:function(){ return state.totalCorrect >= 50; }},
+    {id:'cor100', label:'100 risposte corrette', check:function(){ return state.totalCorrect >= 100; }},
+    {id:'cor500', label:'500 risposte corrette', check:function(){ return state.totalCorrect >= 500; }},
+    {id:'cor1000', label:'1000 risposte corrette', check:function(){ return state.totalCorrect >= 1000; }},
+    {id:'streak5', label:'Streak di 5', check:function(){ return state.streak >= 5; }},
+    {id:'streak10', label:'Streak di 10', check:function(){ return state.streak >= 10; }},
+    {id:'streak20', label:'Streak di 20', check:function(){ return state.streak >= 20; }},
+    {id:'streak50', label:'Streak di 50', check:function(){ return state.streak >= 50; }},
+    {id:'dailyGoal', label:'Obiettivo quotidiano', check:function(){ return state.correctToday >= state.dailyGoal; }},
+    {id:'doubleGoal', label:'Raddoppia obiettivo', check:function(){ return state.correctToday >= state.dailyGoal*2; }}
   ];
 
   var state = {
@@ -371,15 +381,15 @@
     if(play) play.innerHTML='';
     [earnedHome,lockedHome,earnedProg,lockedProg].forEach(function(n){ if(n) n.innerHTML=''; });
     BADGES.forEach(function(b){
-      var node = el('div', {'class':'badge', 'text':b.label});
-      if(state.badges.indexOf(b.id)!==-1){
-        if(play) play.appendChild(node.cloneNode(true));
-        if(earnedHome) earnedHome.appendChild(node.cloneNode(true));
-        if(earnedProg) earnedProg.appendChild(node);
+      var earned = state.badges.indexOf(b.id)!==-1;
+      var badge = el('div', {'class':'badge'+(earned?'':' muted'), 'text':b.label});
+      if(play) play.appendChild(badge.cloneNode(true));
+      if(earned){
+        if(earnedHome) earnedHome.appendChild(badge.cloneNode(true));
+        if(earnedProg) earnedProg.appendChild(badge.cloneNode(true));
       }else{
-        var lock = el('div', {'class':'badge muted', 'text':b.label});
-        if(lockedHome) lockedHome.appendChild(lock.cloneNode(true));
-        if(lockedProg) lockedProg.appendChild(lock);
+        if(lockedHome) lockedHome.appendChild(badge.cloneNode(true));
+        if(lockedProg) lockedProg.appendChild(badge.cloneNode(true));
       }
     });
   }
