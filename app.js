@@ -27,6 +27,11 @@
     {id:'prop', label:'Proporzioni', color:'#14b8a6'}
   ];
 
+  var BADGES = [
+    {id:'cor10', label:'10 risposte corrette', check:function(){ return state.totalCorrect >= 10; }},
+    {id:'streak5', label:'Streak di 5', check:function(){ return state.streak >= 5; }}
+  ];
+
   var state = {
     screen:'home',
     difficulty: 2,
@@ -36,7 +41,9 @@
     correctToday:0,
     dailyGoal:20,
     topic:null,
-    autoAdvance:false
+    autoAdvance:false,
+    totalCorrect: Number(localStorage.getItem('totalCorrect') || 0),
+    badges: JSON.parse(localStorage.getItem('badges') || '[]')
   };
 
   function renderLevels(){
@@ -61,6 +68,17 @@
     setTopic(state.topic ? state.topic.id : null);
   }
 
+  function renderQuickTopics(){
+    var wrap = $('quickTopics');
+    if(!wrap) return;
+    wrap.innerHTML='';
+    TOPICS.forEach(function(t){
+      var btn = el('button', {'class':'btn ghost','data-topic':t.id,'type':'button','text':t.label});
+      wrap.appendChild(btn);
+    });
+    setTopic(state.topic ? state.topic.id : null);
+  }
+
   function selectLevel(lvl){
     state.difficulty = Number(lvl);
     var nodes = document.querySelectorAll('#levels .btn');
@@ -80,7 +98,7 @@
       state.topic = null;
     }
     root.style.setProperty('--accent', state.topic ? state.topic.color : DEFAULT_ACCENT);
-    var nodes = document.querySelectorAll('#topics .btn');
+    var nodes = document.querySelectorAll('#topics .btn, #quickTopics .btn');
     Array.prototype.forEach.call(nodes,function(b){
       if(state.topic && b.getAttribute('data-topic')===state.topic.id){ b.classList.remove('ghost'); }
       else { b.classList.add('ghost'); }
@@ -306,7 +324,8 @@
       ? '<div class="ok">✅ Corretto!</div>'
       : '<div class="bad">❌ Non esatto. Risposta: <b>'+state.q.correct+'</b></div>';
     if(isCorrect){
-      state.streak++; state.correctToday++;
+      state.streak++; state.correctToday++; state.totalCorrect++;
+      localStorage.setItem('totalCorrect', String(state.totalCorrect));
       if(state.autoAdvance){
         $('btnNext').disabled = true;
         setTimeout(function(){ newQuestion(); renderQuestion(); },700);
@@ -331,6 +350,7 @@
     var pct = Math.max(0, Math.min(100, Math.floor((state.correctToday/state.dailyGoal)*100)));
     [g1,g2].forEach(function(bar){ if(bar) bar.style.width = pct+'%'; });
     var streakLbl = $('streak'); if(streakLbl) streakLbl.textContent = String(state.streak);
+    checkBadges();
   }
 
   function toast(text){
@@ -338,6 +358,34 @@
     if(!fb) return;
     fb.innerHTML = '<div class="ok">'+text+'</div>';
     setTimeout(function(){ if(fb) fb.innerHTML=''; }, 1000);
+  }
+
+  function renderBadges(){
+    var play = $('badges'), earned = $('homeBadgesEarned'), locked = $('homeBadgesLocked');
+    if(play) play.innerHTML='';
+    if(earned) earned.innerHTML='';
+    if(locked) locked.innerHTML='';
+    BADGES.forEach(function(b){
+      var node = el('div', {'class':'badge', 'text':b.label});
+      if(state.badges.indexOf(b.id)!==-1){
+        if(play) play.appendChild(node.cloneNode(true));
+        if(earned) earned.appendChild(node);
+      }else{
+        var lock = el('div', {'class':'badge muted', 'text':b.label});
+        if(locked) locked.appendChild(lock);
+      }
+    });
+  }
+
+  function checkBadges(){
+    BADGES.forEach(function(b){
+      if(state.badges.indexOf(b.id)===-1 && b.check()){
+        state.badges.push(b.id);
+        localStorage.setItem('badges', JSON.stringify(state.badges));
+        toast('Nuovo badge: '+b.label+'!');
+        renderBadges();
+      }
+    });
   }
 
   // ====== Event delegation ======
@@ -378,6 +426,8 @@
   function boot(){
     renderLevels();
     renderTopics();
+    renderQuickTopics();
+    renderBadges();
     bindClicks();
     updateProgress();
   }
