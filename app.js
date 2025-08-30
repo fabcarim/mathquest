@@ -20,7 +20,11 @@
   var TOPICS = [
     {id:'arit', label:'Aritmetica', color:'#2563eb'},
     {id:'fra', label:'Frazioni', color:'#10b981'},
-    {id:'geom', label:'Geometria', color:'#f59e0b'}
+    {id:'geom', label:'Geometria', color:'#f59e0b'},
+    {id:'pot', label:'Potenze', color:'#a855f7'},
+    {id:'perc', label:'Percentuali', color:'#ef4444'},
+    {id:'eq', label:'Equazioni', color:'#6b7280'},
+    {id:'prop', label:'Proporzioni', color:'#14b8a6'}
   ];
 
   var state = {
@@ -107,7 +111,7 @@
     window.scrollTo(0,0);
   }
 
-  // ====== Generator semplice ======
+  // ====== Generators ======
   function genArithmetic(d){
     // d=1 facile, d=2 medio, d=3 difficile
     var max = d===1?10:(d===2?20:50);
@@ -138,9 +142,115 @@
     return { prompt: prompt, type:'mc', correct: correct, choices: choices, meta: meta };
   }
 
+  function genFractions(d){
+    var dens = [2,4,5,10,20,25];
+    var den = dens[randInt(0,dens.length-1)];
+    var num = randInt(1, den-1);
+    var correct = Number((num/den).toFixed(2));
+    var prompt = 'Qual è il valore di '+num+'/'+den+'?';
+
+    var choices = [correct];
+    var unit = 1/den;
+    while(choices.length<4){
+      var cand = Number((correct + unit*randInt(-3,3)).toFixed(2));
+      if(cand>=0 && choices.indexOf(cand)===-1) choices.push(cand);
+    }
+    shuffle(choices);
+    return {prompt:prompt, type:'mc', correct:correct, choices:choices};
+  }
+
+  function genGeometry(d){
+    var a = randInt(2, d===1?10:20);
+    var b = randInt(2, d===1?10:20);
+    var isArea = Math.random()<0.5;
+    var correct = isArea ? a*b : 2*(a+b);
+    var prompt = (isArea? 'Area':'Perimetro')+' di un rettangolo '+a+'×'+b;
+
+    var choices = [correct];
+    while(choices.length<4){
+      var delta = randInt(1,5)*randInt(1,3);
+      var cand = correct + (Math.random()<0.5?-delta:delta);
+      if(cand>0 && choices.indexOf(cand)===-1) choices.push(cand);
+    }
+    shuffle(choices);
+    return {prompt:prompt, type:'mc', correct:correct, choices:choices};
+  }
+
+  function genPotenze(d){
+    var base = d===1?randInt(2,5):(d===2?randInt(2,7):randInt(2,9));
+    var exp = d===1?randInt(2,3):(d===2?randInt(2,4):randInt(2,5));
+    var correct = Math.pow(base, exp);
+    var prompt = base+'^'+exp;
+
+    var choices = [correct];
+    while(choices.length<4){
+      var candBase = Math.max(2, base + randInt(-2,2));
+      var cand = Math.pow(candBase, exp);
+      if(cand !== correct && choices.indexOf(cand)===-1) choices.push(cand);
+    }
+    shuffle(choices);
+    return {prompt:prompt, type:'mc', correct:correct, choices:choices};
+  }
+
+  function genPercentuali(d){
+    var base = randInt(1, d===1?5:(d===2?10:20)) * 100;
+    var percs1 = [10,20,30,50];
+    var percs2 = [5,15,25,40,60];
+    var percs3 = [5,12,18,22,35,45,75];
+    var pool = d===1?percs1:(d===2?percs2:percs3);
+    var perc = pool[randInt(0,pool.length-1)];
+    var correct = Math.round(base*perc/100);
+    var prompt = 'Calcola il '+perc+'% di '+base;
+
+    var choices = [correct];
+    var unit = base/100;
+    while(choices.length<4){
+      var cand = correct + unit*randInt(-5,5);
+      if(cand>0 && choices.indexOf(cand)===-1) choices.push(cand);
+    }
+    shuffle(choices);
+    return {prompt:prompt, type:'mc', correct:correct, choices:choices};
+  }
+
+  function genEquazioni(d){
+    var a = randInt(1, d===1?5:(d===2?10:12));
+    var x = randInt(1, d===1?10:(d===2?15:20));
+    var b = randInt(0, d===1?10:20);
+    var c = a*x + b;
+    var prompt = 'Risolvi: '+a+'x + '+b+' = '+c;
+    return {prompt:prompt, type:'input', correct:x};
+  }
+
+  function genProporzioni(d){
+    var a = randInt(2,10);
+    var b = randInt(2,10);
+    var c = randInt(2,10);
+    var x = (b*c)/a;
+    if(x%1!==0){ return genProporzioni(d); }
+    var prompt = a+' : '+b+' = '+c+' : x';
+    return {prompt:prompt, type:'input', correct:x};
+  }
+
   function newQuestion(){
     var d = state.difficulty;
-    state.q = genArithmetic(d);
+    var topicId = state.topic ? state.topic.id : null;
+    var map = {
+      arit: genArithmetic,
+      fra: genFractions,
+      geom: genGeometry,
+      pot: genPotenze,
+      perc: genPercentuali,
+      eq: genEquazioni,
+      prop: genProporzioni
+    };
+    var gen;
+    if(topicId && map[topicId]){
+      gen = map[topicId];
+    }else{
+      var keys = Object.keys(map);
+      gen = map[keys[randInt(0, keys.length-1)]];
+    }
+    state.q = gen(d);
     state.selected = null;
   }
 
