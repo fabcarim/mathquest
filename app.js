@@ -114,7 +114,7 @@
 
   // ====== Screens ======
   function show(id){
-    ['home','train','play'].forEach(function(s){
+    ['home','train','play','progress'].forEach(function(s){
       var elx = $(s);
       if(!elx) return;
       if(s===id){ elx.classList.remove('hidden'); }
@@ -341,12 +341,14 @@
   }
 
   function updateProgress(){
-    var g1 = $('goalBar'), g2 = $('goalBar2'), c1 = $('correctToday'), c2 = $('corToday2'), gSmall=$('goalSmall'), gVal=$('goalVal'), gVal2=$('goalVal2');
+    var g1 = $('goalBar'), g2 = $('goalBar2'), c1 = $('correctToday'), c2 = $('corToday2'), c3 = $('progCorrect'), gSmall=$('goalSmall'), gVal=$('goalVal'), gVal2=$('goalVal2'), gProg=$('progGoal');
     if(c1) c1.textContent = String(state.correctToday);
     if(c2) c2.textContent = String(state.correctToday);
+    if(c3) c3.textContent = String(state.correctToday);
     if(gSmall) gSmall.textContent = String(state.dailyGoal);
     if(gVal) gVal.textContent = String(state.dailyGoal);
     if(gVal2) gVal2.textContent = String(state.dailyGoal);
+    if(gProg) gProg.textContent = String(state.dailyGoal);
     var pct = Math.max(0, Math.min(100, Math.floor((state.correctToday/state.dailyGoal)*100)));
     [g1,g2].forEach(function(bar){ if(bar) bar.style.width = pct+'%'; });
     var streakLbl = $('streak'); if(streakLbl) streakLbl.textContent = String(state.streak);
@@ -361,18 +363,23 @@
   }
 
   function renderBadges(){
-    var play = $('badges'), earned = $('homeBadgesEarned'), locked = $('homeBadgesLocked');
+    var play = $('badges'),
+        earnedHome = $('homeBadgesEarned'),
+        lockedHome = $('homeBadgesLocked'),
+        earnedProg = $('progBadgesEarned'),
+        lockedProg = $('progBadgesLocked');
     if(play) play.innerHTML='';
-    if(earned) earned.innerHTML='';
-    if(locked) locked.innerHTML='';
+    [earnedHome,lockedHome,earnedProg,lockedProg].forEach(function(n){ if(n) n.innerHTML=''; });
     BADGES.forEach(function(b){
       var node = el('div', {'class':'badge', 'text':b.label});
       if(state.badges.indexOf(b.id)!==-1){
         if(play) play.appendChild(node.cloneNode(true));
-        if(earned) earned.appendChild(node);
+        if(earnedHome) earnedHome.appendChild(node.cloneNode(true));
+        if(earnedProg) earnedProg.appendChild(node);
       }else{
         var lock = el('div', {'class':'badge muted', 'text':b.label});
-        if(locked) locked.appendChild(lock);
+        if(lockedHome) lockedHome.appendChild(lock.cloneNode(true));
+        if(lockedProg) lockedProg.appendChild(lock);
       }
     });
   }
@@ -403,7 +410,7 @@
       if(id==='startQuick'){ e.preventDefault(); setTopic(null); show('play'); newQuestion(); renderQuestion(); toast('Via!'); return; }
       if(id==='startTrain'){ e.preventDefault(); show('train'); return; }
       if(id==='trainGo'){ e.preventDefault(); show('play'); newQuestion(); renderQuestion(); return; }
-      if(id==='btnProg'){ e.preventDefault(); alert('Corrette oggi: '+state.correctToday+'\nStreak: '+state.streak); return; }
+      if(id==='btnProg'){ e.preventDefault(); show('progress'); return; }
       if(id==='btnSettings'){ e.preventDefault(); state.autoAdvance=!state.autoAdvance; toast('Avanzamento automatico '+(state.autoAdvance?'ON':'OFF')); return; }
 
       if(id==='resetTopic' || id==='clearTopic'){ e.preventDefault(); setTopic(null); return; }
