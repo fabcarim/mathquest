@@ -739,7 +739,12 @@ $('btnHome').onclick=function(){ show('home'); };
 $('btnPlay').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
 $('btnTrain').onclick=function(){ show('train'); renderStats(); };
 $('btnProg').onclick=function(){ show('progress'); renderStats(); renderByTopic(); renderBadgesList(); };
-$('btnSettings').onclick=function(){ show('settings'); renderStats(); };
+if($('btnSettings')){
+  $('btnSettings').addEventListener('click', function(){
+    show('settings');
+    renderStats();
+  });
+}
 $('startQuick').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
 $('startTrain').onclick=function(){ show('train'); };
 $('trainGo').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
@@ -748,6 +753,7 @@ $('btnConfirm').onclick=confirmAnswer;
 $('btnNext').onclick=function(){ if(!state.answeredThis){ $('feedback').innerHTML = "<div class='bad'><b>Prima prova a rispondere.</b> Non puoi saltare senza fare un tentativo.</div>"; return; } nextQuestion(); };
 $('btnHint').onclick=toggleHint;
 $('btnSimilar').onclick=similar;
+window.addEventListener('beforeunload', saveState);
 $('btnExport').onclick=function(){
   var rows = [['timestamp','day','topic','stem','meta','given','answer','ok']];
   state.history.forEach(function(h){ rows.push([new Date(h.ts).toISOString(), dayKey(h.ts), h.topic, h.stem, h.meta||'', h.given, h.answer, h.ok]); });
