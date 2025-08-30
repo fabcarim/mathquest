@@ -1,8 +1,8 @@
-/* sw.js — MathQuest PWA — v19.01
+/* sw.js — MathQuest PWA — v19.02
    - Navigazioni (document): NETWORK-FIRST con fallback offline (index.html)
    - Asset statici: CACHE-FIRST con fill dinamico
 */
-const VERSION    = 'v19.01';
+const VERSION    = 'v19.02';
 const CACHE_NAME = `mathquest-${VERSION}`;
 
 const PRECACHE = [

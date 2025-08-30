@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 1ª–2ª media (v19.01)</title>
+<title>MathQuest Lite Plus · 1ª–2ª media (v19.02)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -59,7 +59,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 1ª–2ª media (v19.01)</h1>
+      <h1>MathQuest Lite Plus · 1ª–2ª media (v19.02)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -686,6 +686,7 @@ function renderQuestion(){
     ui.appendChild(grid);
   } else {
     var inp=document.createElement('input'); inp.type='text'; inp.className='answer'; inp.placeholder='Scrivi qui la risposta';
+    inp.setAttribute('inputmode','decimal'); inp.setAttribute('pattern','[0-9]*[.,]?[0-9]*');
     inp.onkeydown=function(e){ if(e.key==='Enter'){ confirmAnswer(); } };
     inp.oninput=function(e){ state.input=e.target.value; };
     ui.appendChild(inp); inp.focus();
