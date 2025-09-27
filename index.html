@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 1ª–2ª media (v12)</title>
+<title>MathQuest Lite Plus · 1ª–2ª media (v19.06)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -59,7 +59,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 1ª–2ª media (v12)</h1>
+      <h1>MathQuest Lite Plus · 1ª–2ª media (v19.06)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -490,53 +490,243 @@ function makeQ(topic, type, stem, meta, answer, choices, hints, solution){
 
 var Builders = {
   "Calcolo interi": function(D){
-    var op = randChoice(['+','-','×','÷']); var a,b,stem,meta='',ans;
-    if(op==='+'){a=randInt(100*D,300*D);b=randInt(50*D,150*D);ans=a+b;stem='Calcola la somma'; meta='Rispondi con un numero intero. Operazione: '+a+' + '+b;}
-    if(op==='-'){a=randInt(150*D,400*D);b=randInt(50*D,149*D); if(b>a){var t=a;a=b;b=t;} ans=a-b; stem='Calcola la differenza'; meta='Rispondi con un numero intero. Operazione: '+a+' − '+b;}
-    if(op==='×'){a=randInt(6,12*D);b=randInt(6,12*D);ans=a*b;stem='Calcola il prodotto'; meta='Rispondi con un numero intero. Operazione: '+a+' × '+b;}
-    if(op==='÷'){b=randInt(2,12*D);ans=randInt(6,12*D);a=ans*b;stem='Calcola il quoziente'; meta='Risposta intera. Operazione: '+a+' ÷ '+b;}
-    return makeQ('Calcolo interi','input',stem,meta,ans,null,["Esegui l'operazione nell'ordine dato"],String(ans));
+    var mode = randChoice(['singola','doppioPasso','parentesi']);
+    var stem, meta, ans;
+    if(mode==='singola'){
+      var op = randChoice(['+','-','×','÷']); var a,b;
+      if(op==='+'){a=randInt(100*D,300*D);b=randInt(50*D,150*D);ans=a+b;stem='Calcola la somma'; meta='Operazione: '+a+' + '+b;}
+      if(op==='-'){a=randInt(150*D,400*D);b=randInt(50*D,149*D); if(b>a){var t=a;a=b;b=t;} ans=a-b; stem='Calcola la differenza'; meta='Operazione: '+a+' − '+b;}
+      if(op==='×'){a=randInt(6,12*D);b=randInt(6,12*D);ans=a*b;stem='Calcola il prodotto'; meta='Operazione: '+a+' × '+b;}
+      if(op==='÷'){b=randInt(2,12*D);ans=randInt(6,12*D);a=ans*b;stem='Calcola il quoziente'; meta='Operazione: '+a+' ÷ '+b;}
+      return makeQ('Calcolo interi','input',stem,'Rispondi con un numero intero. '+meta,ans,null,["Esegui l'operazione nell'ordine dato"],String(ans));
+    }
+    if(mode==='doppioPasso'){
+      var base=randInt(40*D,120*D); var add=randInt(10,60); var sub=randInt(10,50);
+      ans = base + add - sub;
+      stem='Espressione con due operazioni';
+      meta='Calcola: '+base+' + '+add+' - '+sub+'.';
+      return makeQ('Calcolo interi','input',stem,meta,ans,null,["Procedi da sinistra a destra","Controlla il risultato parziale dopo ogni passo"],String(ans));
+    }
+    var a1=randInt(5*D,30*D), b1=randInt(5*D,30*D), c1=randInt(2,9);
+    ans = (a1 + b1) * c1;
+    stem='Uso delle parentesi';
+    meta='Calcola: ('+a1+' + '+b1+') × '+c1+'.';
+    return makeQ('Calcolo interi','input',stem,meta,ans,null,["Somma prima dentro le parentesi","Poi moltiplica il risultato per il numero esterno"],String(ans));
   },
   "Decimali": function(D){
-    var mode = randChoice(['somma','prodotto','arrotonda']); var a=dec(randInt(10,80)/10,1), b=dec(randInt(10,80)/10,1);
-    if(mode==='somma') return makeQ('Decimali','input','Somma con decimali','Arrotonda il risultato a 2 cifre decimali. Operazione: '+a+' + '+b,dec(a+b,2),null,['Allinea la virgola','Arrotonda a 2 decimali'],dec(a+b,2).toFixed(2));
-    if(mode==='prodotto'){ var ans=dec(a*b,2); return makeQ('Decimali','input','Prodotto con decimali','Arrotonda il risultato a 2 cifre decimali. Operazione: '+a+' × '+b,ans,null,['Conta le cifre decimali','Arrotonda a 2 decimali'],ans.toFixed(2)); }
-    var target = randChoice([0,1,2]); return makeQ('Decimali','input','Arrotondamento','Arrotonda '+a+' esattamente a '+target+' cifre decimali.',dec(a,target),null,['Regola del 5'],dec(a,target).toFixed(target));
+    var mode = randChoice(['somma','prodotto','arrotonda','differenza','confronto']);
+    var a=dec(randInt(10,180)/10,1), b=dec(randInt(10,180)/10,1);
+    if(mode==='somma'){
+      return makeQ('Decimali','input','Somma con decimali','Arrotonda il risultato a 2 cifre decimali. Operazione: '+a+' + '+b,dec(a+b,2),null,['Allinea la virgola','Arrotonda a 2 decimali'],dec(a+b,2).toFixed(2));
+    }
+    if(mode==='prodotto'){
+      var ans=dec(a*b,2);
+      return makeQ('Decimali','input','Prodotto con decimali','Arrotonda il risultato a 2 cifre decimali. Operazione: '+a+' × '+b,ans,null,['Conta le cifre decimali','Arrotonda a 2 decimali'],ans.toFixed(2));
+    }
+    if(mode==='differenza'){
+      if(b>a){ var tmp=a; a=b; b=tmp; }
+      var diff=dec(a-b,2);
+      return makeQ('Decimali','input','Sottrazione con decimali','Calcola '+a+' - '+b+' e arrotonda a 2 cifre decimali.',diff,null,['Allinea le virgole','Se serve prendi in prestito dai decimi'],diff.toFixed(2));
+    }
+    if(mode==='confronto'){
+      var values=[];
+      while(values.length<4){
+        var val=dec(randInt(10,220)/10,2);
+        if(values.every(function(v){return Math.abs(v-val)>0.009;})) values.push(val);
+      }
+      var formatted=values.map(function(v){return v.toFixed(2);});
+      var correct=formatted.slice().sort(function(x,y){return Number(y)-Number(x);})[0];
+      var stem='Confronto di decimali';
+      var meta='Quale numero è il maggiore tra quelli proposti?';
+      return makeQ('Decimali','mc',stem,meta,correct,sanitizeChoices(stem+' '+meta, formatted, correct),['Confronta prima le unità','Se sono uguali guarda decimi e centesimi'],correct);
+    }
+    var target = randChoice([0,1,2]);
+    return makeQ('Decimali','input','Arrotondamento','Arrotonda '+a+' esattamente a '+target+' cifre decimali.',dec(a,target),null,['Regola del 5'],dec(a,target).toFixed(target));
   },
   "Frazioni": function(D){
-    var a = randInt(1,9), b = randInt(2,9); var g0 = gcd(a,b); a = Math.floor(a/g0); b = Math.floor(b/g0); if(a===b){ b = b+1; }
-    var k = randInt(2,5); var aK = a*k, bK = b*k; var variant = randChoice(['askBase','askScaled']);
-    if(variant==='askBase'){ var correct = aK+'/'+bK; var opts = [correct, a+'/'+bK, aK+'/'+b, (aK+1)+'/'+bK]; var stem='Frazioni equivalenti'; var meta='Scegli una frazione equivalente a '+a+'/'+b+' (diversa da '+a+'/'+b+').'; return makeQ('Frazioni','mc',stem,meta,correct,sanitizeChoices(stem+' '+meta, opts, correct),['Moltiplica numeratore e denominatore per lo stesso numero'], correct); }
-    else { var correct2 = a+'/'+b; var opts2 = [correct2, aK+'/'+b, a+'/'+bK, aK+'/'+(bK+1)]; var stem2='Frazioni equivalenti'; var meta2='Scegli una frazione equivalente a '+aK+'/'+bK+' (diversa da '+aK+'/'+bK+').'; return makeQ('Frazioni','mc',stem2,meta2,correct2,sanitizeChoices(stem2+' '+meta2, opts2, correct2),['Riduci ai minimi termini','Dividi per lo stesso numero'], correct2); }
+    var mode = randChoice(['equivalenti','semplifica','somma']);
+    if(mode==='equivalenti'){
+      var a = randInt(1,9), b = randInt(2,9); var g0 = gcd(a,b); a = Math.floor(a/g0); b = Math.floor(b/g0); if(a===b){ b = b+1; }
+      var k = randInt(2,5); var aK = a*k, bK = b*k; var variant = randChoice(['askBase','askScaled']);
+      if(variant==='askBase'){
+        var correct = aK+'/'+bK;
+        var opts = [correct, a+'/'+bK, aK+'/'+b, (aK+1)+'/'+bK];
+        var stem='Frazioni equivalenti';
+        var meta='Scegli una frazione equivalente a '+a+'/'+b+' (diversa da '+a+'/'+b+').';
+        return makeQ('Frazioni','mc',stem,meta,correct,sanitizeChoices(stem+' '+meta, opts, correct),['Moltiplica numeratore e denominatore per lo stesso numero'], correct);
+      }
+      var correct2 = a+'/'+b;
+      var opts2 = [correct2, aK+'/'+b, a+'/'+bK, aK+'/'+(bK+1)];
+      var stem2='Frazioni equivalenti';
+      var meta2='Scegli una frazione equivalente a '+aK+'/'+bK+' (diversa da '+aK+'/'+bK+').';
+      return makeQ('Frazioni','mc',stem2,meta2,correct2,sanitizeChoices(stem2+' '+meta2, opts2, correct2),['Riduci ai minimi termini','Dividi per lo stesso numero'], correct2);
+    }
+    if(mode==='semplifica'){
+      var baseNum = randInt(1,9);
+      var baseDen = randInt(baseNum+1,12);
+      if(gcd(baseNum, baseDen)!==1){ var g=gcd(baseNum,baseDen); baseNum/=g; baseDen/=g; }
+      var factor = randInt(2,5);
+      var num = baseNum*factor;
+      var den = baseDen*factor;
+      var simp = baseNum+'/'+baseDen;
+      var stem3='Semplifica la frazione';
+      var meta3='Riduci ai minimi termini '+num+'/'+den+'.';
+      return makeQ('Frazioni','input',stem3,meta3,simp,null,['Dividi numeratore e denominatore per il loro MCD'],simp);
+    }
+    var denSame = randChoice([4,5,6,8,9,10,12]);
+    var n1 = randInt(1,denSame-1);
+    var n2 = randInt(1,denSame-1);
+    var sum = n1+n2;
+    var g2 = gcd(sum, denSame);
+    var simpNum = sum/g2;
+    var simpDen = denSame/g2;
+    var answer = simpDen===1 ? String(simpNum) : (simpNum+'/'+simpDen);
+    var stem4='Somma di frazioni con stesso denominatore';
+    var meta4='Calcola: '+n1+'/'+denSame+' + '+n2+'/'+denSame+'. Scrivi la risposta in forma semplificata.';
+    return makeQ('Frazioni','input',stem4,meta4,answer,null,['Somma i numeratori','Semplifica dividendo per il MCD'],answer);
   },
   "Percentuali": function(D){
-    var mode=randChoice(['percOf','fracToPerc','percToFrac']);
+    var mode=randChoice(['percOf','fracToPerc','percToFrac','increase','reverse']);
     if(mode==='percOf'){ var p=randChoice([10,12.5,20,25,30,40,50]); var x=randInt(16*D,80*D); var a=dec(x*p/100,2); return makeQ('Percentuali','input','Percentuale di una quantità','Calcola il '+p+'% di '+x+'. Arrotonda a 2 decimali se serve.',a,null,['Trasforma in decimale: p/100'],String(a)); }
     if(mode==='fracToPerc'){ var d=randChoice([2,4,5,8,10]); var n=randInt(1,d-1); var a2=dec(100*n/d,2)+'%'; var ch=[a2, dec(n/d,2).toString(), String(n*d)+'%', String(d)+'/'+String(n)+'%']; var stem='Da frazione a percentuale'; var meta='Converti '+n+'/'+d+' in percentuale (es. 12,5%).'; return makeQ('Percentuali','mc',stem,meta,a2,sanitizeChoices(stem+' '+meta, ch, a2),['(n/d)*100'], a2); }
+    if(mode==='increase'){
+      var base=randInt(30*D,140*D);
+      var perc=randChoice([5,10,12.5,20,25]);
+      var inc=dec(base*(1+perc/100),2);
+      return makeQ('Percentuali','input','Aumento percentuale','Un valore di '+base+' aumenta del '+perc+'%. Qual è il nuovo valore? Arrotonda a 2 decimali.',inc,null,["Calcola l'incremento: valore·(1+percentuale/100)"],inc.toFixed(2));
+    }
+    if(mode==='reverse'){
+      var perc2=randChoice([10,15,20,25,30]);
+      var finale=randInt(25*D,90*D);
+      var iniziale=dec(finale/(1-perc2/100),2);
+      var stem3='Prezzo prima dello sconto';
+      var meta3='Dopo uno sconto del '+perc2+'% un capo costa '+finale+' €. Quanto costava prima? Arrotonda a 2 decimali.';
+      return makeQ('Percentuali','input',stem3,meta3,iniziale,null,["Dividi il prezzo scontato per (1 - percentuale/100)"],iniziale.toFixed(2));
+    }
     var mp={"12.5":[1,8],"20":[1,5],"25":[1,4],"37.5":[3,8],"50":[1,2],"62.5":[5,8],"75":[3,4]}; var keys=Object.keys(mp); var pk=randChoice(keys); var nn=mp[pk][0], dd=mp[pk][1]; var stem2='Percentuale come frazione'; var meta2='Scrivi '+pk+'% come frazione in termini minimi.'; var corr=nn+'/'+dd; return makeQ('Percentuali','mc',stem2,meta2,corr,sanitizeChoices(stem2+' '+meta2,[corr,'1/3','2/5','5/12'],corr),['Riduci per MCD'], corr);
   },
   "Proporzioni": function(D){
-    var a=randInt(2*D,12*D), b=randInt(2*D,12*D), c=randInt(2*D,12*D); var x=Math.round((b*c)/a); return makeQ('Proporzioni','input','Completa la proporzione',a+' : '+b+' = '+c+' : x — Trova x (intero).',x,null,['Prodotto medi = prodotto estremi'],String(x));
+    var mode=randChoice(['termineMancante','inizioMancante','problema']);
+    if(mode==='termineMancante'){
+      var a=randInt(2*D,12*D), b=randInt(2*D,12*D), c=randInt(2*D,12*D);
+      var x=Math.round((b*c)/a);
+      return makeQ('Proporzioni','input','Completa la proporzione',a+' : '+b+' = '+c+' : x — Trova x (intero).',x,null,['Prodotto dei medi uguale al prodotto degli estremi'],String(x));
+    }
+    if(mode==='inizioMancante'){
+      var b2=randInt(3*D,14*D), c2=randInt(2*D,12*D), d2=randInt(2*D,12*D);
+      var a2=Math.round((b2*c2)/d2);
+      return makeQ('Proporzioni','input','Trova il primo termine','Completa: a : '+b2+' = '+c2+' : '+d2+'. Trova a (intero).',a2,null,['Usa la formula a = (b·c)/d'],String(a2));
+    }
+    var item=randChoice(['quaderni','magliette','biglietti','litri di succo']);
+    var unit=randInt(2,6);
+    var knownQty=randInt(2,6);
+    var askQty=randInt(4,10);
+    var total=unit*knownQty;
+    var answer=unit*askQty;
+    var stem='Problema di proporzionalità diretta';
+    var meta='Se '+knownQty+' '+item+' costano '+total+' €, quanto costano '+askQty+' '+item+'?';
+    return makeQ('Proporzioni','input',stem,meta,answer,null,['Calcola il costo unitario dividendo il totale per la quantità','Moltiplica il costo unitario per la nuova quantità'],String(answer));
   },
   "Equazioni": function(D){
-    var a=randInt(2,7), x=randInt(2*D,15*D), b=randInt(-10,10); var c=a*x+b; return makeQ('Equazioni','input',"Risolvi l'equazione di 1º grado", a+'x '+(b>=0?'+':'-')+' '+Math.abs(b)+' = '+c+'. Trova x (intero).', x, null, ['Isola x: (c - b)/a'], 'x='+x);
+    var mode=randChoice(['ax+b','dueLati','frazione','parentesi']);
+    if(mode==='ax+b'){
+      var a=randInt(2,7), x=randInt(2*D,15*D), b=randInt(-10,10); var c=a*x+b;
+      return makeQ('Equazioni','input',"Risolvi l'equazione di 1º grado", a+'x '+(b>=0?'+':'-')+' '+Math.abs(b)+' = '+c+'. Trova x (intero).', x, null, ['Isola x: (c - b)/a'], 'x='+x);
+    }
+    if(mode==='dueLati'){
+      var x2=randInt(2*D,12*D);
+      var a2=randInt(2,7);
+      var c2=randInt(1,6);
+      while(c2===a2){ c2=randInt(1,6); }
+      var b2=randInt(-12,12);
+      var d2=a2*x2 + b2 - c2*x2;
+      var eq=a2+'x '+(b2>=0?'+':'-')+' '+Math.abs(b2)+' = '+c2+'x '+(d2>=0?'+':'-')+' '+Math.abs(d2);
+      return makeQ('Equazioni','input','Equazione con x su entrambi i membri',eq+'. Trova x (intero).',x2,null,['Porta i termini con x da una parte e i numeri dall’altra','Dividi per il coefficiente di x'], 'x='+x2);
+    }
+    if(mode==='frazione'){
+      var q=randInt(2,6);
+      var r=randInt(2*D,10*D);
+      var p=randInt(-6,8);
+      var x3=r*q - p;
+      var eq2='(x '+(p>=0?'+':'-')+' '+Math.abs(p)+') / '+q+' = '+r;
+      return makeQ('Equazioni','input','Equazione con frazione',eq2+'. Trova x (intero).',x3,null,['Moltiplica entrambi i membri per '+q,'Isola x sottraendo '+p], 'x='+x3);
+    }
+    var x4=randInt(2*D,12*D);
+    var k=randInt(2,5);
+    var shift=randInt(1,7);
+    var rhs=k*(x4+shift);
+    var eq3=k+'(x + '+shift+') = '+rhs;
+    return makeQ('Equazioni','input','Equazione con parentesi',eq3+'. Trova x (intero).',x4,null,['Dividi entrambi i membri per '+k,'Poi sottrai '+shift], 'x='+x4);
   },
   "Geometria": function(D){
-    var shape=randChoice(['rettangolo','triangolo','quadrato','cerchio']);
-    if(shape==='rettangolo'){ var B=randInt(5*D,20*D), H=randInt(5*D,20*D); return makeQ('Geometria','input','Area del rettangolo','Base '+fmtUnit(B,'cm')+', altezza '+fmtUnit(H,'cm')+'. Rispondi in cm² (intero). Formula: A=b·h.',B*H,null,['Moltiplica base × altezza'],String(B*H)); }
-    if(shape==='triangolo'){ var B2=randInt(6*D,20*D), H2=randInt(4*D,18*D); return makeQ('Geometria','input','Area del triangolo','Base '+fmtUnit(B2,'cm')+', altezza '+fmtUnit(H2,'cm')+'. Rispondi in cm² (usa A=(b·h)/2).',(B2*H2)/2,null,['Dividi per 2'],String((B2*H2)/2)); }
-    if(shape==='quadrato'){ var L=randInt(4*D,20*D); return makeQ('Geometria','input','Perimetro del quadrato','Lato '+fmtUnit(L,'cm')+'. Rispondi in cm (intero).',4*L,null,['P=4·l'],String(4*L)); }
-    var r=randInt(3,10); var pi=3.14; return makeQ('Geometria','input','Circonferenza del cerchio','Raggio '+fmtUnit(r,'cm')+'. Usa π≈3,14 e arrotonda a 2 decimali.',dec(2*pi*r,2),null,['C=2πr'],dec(2*pi*r,2).toFixed(2));
+    var shape=randChoice(['rettangolo','triangolo','quadrato','cerchio','parallelogramma','trapezio','rombo','perimetro_triangolo','area_cerchio','cubo','prisma','cilindro']);
+    if(shape==='rettangolo'){
+      var B=randInt(5*D,20*D), H=randInt(5*D,20*D);
+      return makeQ('Geometria','input','Area del rettangolo','Base '+fmtUnit(B,'cm')+', altezza '+fmtUnit(H,'cm')+'. Rispondi in cm² (intero).',B*H,null,['Moltiplica base × altezza'],String(B*H));
+    }
+    if(shape==='triangolo'){
+      var B2=randInt(6*D,20*D), H2=randInt(4*D,18*D);
+      return makeQ('Geometria','input','Area del triangolo','Base '+fmtUnit(B2,'cm')+', altezza '+fmtUnit(H2,'cm')+'. Rispondi in cm² (usa A=(b·h)/2).',(B2*H2)/2,null,["Moltiplica base × altezza e dividi per 2"],String((B2*H2)/2));
+    }
+    if(shape==='quadrato'){
+      var L=randInt(4*D,20*D);
+      return makeQ('Geometria','input','Perimetro del quadrato','Lato '+fmtUnit(L,'cm')+'. Rispondi in cm (intero).',4*L,null,['P=4·l'],String(4*L));
+    }
+    if(shape==='cerchio'){
+      var r=randInt(3,10); var pi=3.14;
+      return makeQ('Geometria','input','Circonferenza del cerchio','Raggio '+fmtUnit(r,'cm')+'. Usa π≈3,14 e arrotonda a 2 decimali.',dec(2*pi*r,2),null,['C=2πr'],dec(2*pi*r,2).toFixed(2));
+    }
+    if(shape==='parallelogramma'){
+      var bp=randInt(5*D,18*D), hp=randInt(5*D,18*D);
+      return makeQ('Geometria','input','Area del parallelogramma','Base '+fmtUnit(bp,'cm')+', altezza '+fmtUnit(hp,'cm')+'. Rispondi in cm².',bp*hp,null,['A=b·h come nel rettangolo'],String(bp*hp));
+    }
+    if(shape==='trapezio'){
+      var Bmag=randInt(8*D,20*D), Bmin=randInt(4*D,12*D); if(Bmin>=Bmag){ Bmin=Math.max(2*D,Bmag-2); }
+      var htr=randInt(4*D,12*D); if(htr%2===1) htr+=1;
+      var areaTr=((Bmag+Bmin)*htr)/2;
+      return makeQ('Geometria','input','Area del trapezio','Basi '+fmtUnit(Bmag,'cm')+' e '+fmtUnit(Bmin,'cm')+', altezza '+fmtUnit(htr,'cm')+'. Rispondi in cm².',areaTr,null,["Somma le basi, moltiplica per l'altezza e dividi per 2"],String(areaTr));
+    }
+    if(shape==='rombo'){
+      var D1=randInt(6*D,18*D); if(D1%2===1) D1+=1;
+      var D2=randInt(4*D,16*D); if(D2%2===1) D2+=1;
+      var areaR=(D1*D2)/2;
+      return makeQ('Geometria','input','Area del rombo','Diagonali '+fmtUnit(D1,'cm')+' e '+fmtUnit(D2,'cm')+'. Rispondi in cm².',areaR,null,['A=(d1·d2)/2'],String(areaR));
+    }
+    if(shape==='perimetro_triangolo'){
+      var t1=randInt(5*D,15*D), t2=randInt(5*D,15*D), t3=randInt(5*D,15*D);
+      return makeQ('Geometria','input','Perimetro del triangolo','Lati '+fmtUnit(t1,'cm')+', '+fmtUnit(t2,'cm')+' e '+fmtUnit(t3,'cm')+'. Rispondi in cm.',t1+t2+t3,null,['Somma i tre lati'],String(t1+t2+t3));
+    }
+    if(shape==='area_cerchio'){
+      var r2=randInt(3,9); var pi2=3.14; var areaC=dec(pi2*r2*r2,2);
+      return makeQ('Geometria','input','Area del cerchio','Raggio '+fmtUnit(r2,'cm')+'. Usa π≈3,14 e arrotonda a 2 decimali.',areaC,null,['A=π·r²'],areaC.toFixed(2));
+    }
+    if(shape==='cubo'){
+      var lato=randInt(2*D,8*D);
+      var volume=lato*lato*lato;
+      return makeQ('Geometria','input','Volume del cubo','Lato '+fmtUnit(lato,'cm')+'. Rispondi in cm³.',volume,null,['Eleva il lato alla terza (l³)'],String(volume));
+    }
+    if(shape==='prisma'){
+      var lp=randInt(3*D,10*D), wp=randInt(3*D,10*D), hp2=randInt(3*D,10*D);
+      var volumePr=lp*wp*hp2;
+      return makeQ('Geometria','input','Volume del parallelepipedo rettangolo','Base '+fmtUnit(lp,'cm')+' × '+fmtUnit(wp,'cm')+', altezza '+fmtUnit(hp2,'cm')+'. Rispondi in cm³.',volumePr,null,['Volume = base × profondità × altezza'],String(volumePr));
+    }
+    var rc=randInt(2,6); var hc=randInt(5,12); var pi3=3.14; var volC=dec(pi3*rc*rc*hc,1);
+    return makeQ('Geometria','input','Volume del cilindro','Raggio '+fmtUnit(rc,'cm')+', altezza '+fmtUnit(hc,'cm')+'. Usa π≈3,14 e arrotonda a 1 decimale.',volC,null,['Calcola π·r²·h'],volC.toFixed(1));
   },
   "Misure": function(D){
-    var type=randChoice(['L','kg','km','cm2']);
+    var type=randChoice(['L','kg','km','cm2','m2','tempo']);
     if(type==='L'){ var L=dec(randInt(5,30)/2,1); return makeQ('Misure','input','Conversione di capacità','Converti '+L+' L in mL.',L*1000,null,['×1000'],String(L*1000)); }
     if(type==='kg'){ var kg=dec(randInt(10,50)/10,1); return makeQ('Misure','input','Conversione di massa','Converti '+kg+' kg in g.',kg*1000,null,['×1000'],String(kg*1000)); }
     if(type==='km'){ var km=dec(randInt(10,80)/10,1); return makeQ('Misure','input','Conversione di lunghezza','Converti '+km+' km in m.',km*1000,null,['×1000'],String(km*1000)); }
-    var c=randInt(5*D,40*D); return makeQ('Misure','input','Conversione di area','Converti '+c+' cm² in mm².',c*100,null,['×100 (per le aree cm²→mm²)'],String(c*100));
+    if(type==='cm2'){ var c=randInt(5*D,40*D); return makeQ('Misure','input','Conversione di area','Converti '+c+' cm² in mm².',c*100,null,['×100 (per le aree cm²→mm²)'],String(c*100)); }
+    if(type==='m2'){ var m2=randInt(2*D,20*D); return makeQ('Misure','input','Conversione di area grande','Converti '+m2+' m² in cm².',m2*10000,null,['1 m² = 10 000 cm²'],String(m2*10000)); }
+    var variant=randChoice(['hToMin','minToSec']);
+    if(variant==='hToMin'){ var h=randInt(1,5); return makeQ('Misure','input','Conversione di tempo','Converti '+h+' h in minuti.',h*60,null,['×60'],String(h*60)); }
+    var minutes=randInt(10,90);
+    return makeQ('Misure','input','Conversione di tempo','Converti '+minutes+' minuti in secondi.',minutes*60,null,['Moltiplica per 60'],String(minutes*60));
   },
   "Potenze": function(D){
-    var mode = randChoice(['calc','product','quotient','powerOfPower','tenPow','compare','expand','compress']);
+    var mode = randChoice(['calc','product','quotient','powerOfPower','tenPow','compare','expand','compress','chain']);
     if(mode==='calc'){
       var a=randChoice([2,3,4,5,6,7,8,9]); var e=randChoice([2,3,4]);
       return makeQ('Potenze','input','Calcola la potenza','Calcola '+a+'^'+e+'. Rispondi con un intero.', Math.pow(a,e), null, ['Moltiplica la base per se stessa e volte l’esponente'], String(Math.pow(a,e)));
@@ -582,15 +772,83 @@ var Builders = {
       var correct2 = a7+'^'+e7;
       return makeQ('Potenze','mc',stem3,meta3,correct2, sanitizeChoices(stem3+' '+meta3, [correct2, a7+'^'+(e7-1), (a7+1)+'^'+e7, a7+'^'+(e7+1)], correct2), ['Conta quante volte ripeti la base'], correct2);
     }
+    var baseChain=randChoice([2,3,5,7]);
+    var exp1=randInt(1,4), exp2=randInt(1,4), exp3=randInt(1,Math.max(1,exp1+exp2-1));
+    var resultExp=exp1+exp2-exp3;
+    return makeQ('Potenze','input','Catena di potenze con la stessa base','Semplifica: '+baseChain+'^'+exp1+' · '+baseChain+'^'+exp2+' : '+baseChain+'^'+exp3+' = '+baseChain+'^?',resultExp,null,['Somma gli esponenti delle moltiplicazioni e sottrai quelli della divisione'],String(resultExp));
   },
-  "Radici": function(D){ var sq=randChoice([36,49,64,81,100,121,144,169]); return makeQ('Radici','input','Calcola la radice quadrata','√'+sq+'. Rispondi con un intero.', Math.sqrt(sq), null, ['Numero che al quadrato dà '+sq], String(Math.sqrt(sq))); },
-  "Numero teoria": function(D){ var a=randInt(6*D,20*D), b=randInt(6*D,20*D); var mode=randChoice(['MCD','mcm']); if(mode==='MCD'){ var ans=gcd(a,b); return makeQ('Numero teoria','input','Massimo Comune Divisore','Trova MCD('+a+', '+b+'). Rispondi con un intero.', ans, null, ['Algoritmo di Euclide'], String(ans)); } var ans2=lcm(a,b); return makeQ('Numero teoria','input','Minimo comune multiplo','Trova mcm('+a+', '+b+'). Rispondi con un intero.', ans2, null, ['ab/MCD'], String(ans2)); },
-  "Problemi": function(D){ var kmD=randInt(3,8), g=randInt(4,7), bonus=randInt(10,30); var base=kmD*g; var tot=dec(base*(1+bonus/100),2); return makeQ('Problemi','input','Problema su percentuali','Mia corre '+kmD+' km al giorno per '+g+' giorni. L\'ultimo giorno fa +'+bonus+'%. Quanti km totali? Arrotonda a 2 decimali.', tot, null, ['Totale base + bonus','Arrotonda a 2 decimali'], tot.toFixed(2)); },
+  "Radici": function(D){
+    var mode=randChoice(['valore','latoQuadrato','equazione']);
+    if(mode==='valore'){
+      var sq=randChoice([36,49,64,81,100,121,144,169,196,225]);
+      return makeQ('Radici','input','Calcola la radice quadrata','√'+sq+'. Rispondi con un intero.', Math.sqrt(sq), null, ['Numero che al quadrato dà '+sq], String(Math.sqrt(sq)));
+    }
+    if(mode==='latoQuadrato'){
+      var area=randChoice([25,36,49,64,81,100,144,196]);
+      var lato=Math.sqrt(area);
+      return makeQ('Radici','input','Lato di un quadrato','Un quadrato ha area '+area+' cm². Quanto misura il lato? (in cm)',lato,null,['Il lato è la radice quadrata dell’area'],String(lato));
+    }
+    var value=randChoice([16,25,36,49,64,81]);
+    return makeQ('Radici','input','Equazione con quadrato','Risolvi x² = '+value+'. Trova x positivo.',Math.sqrt(value),null,['Prendi la radice quadrata di '+value],String(Math.sqrt(value)));
+  },
+  "Numero teoria": function(D){
+    var a=randInt(6*D,20*D), b=randInt(6*D,20*D);
+    var mode=randChoice(['MCD','mcm','primo','divisibilita']);
+    if(mode==='MCD'){
+      var ans=gcd(a,b);
+      return makeQ('Numero teoria','input','Massimo Comune Divisore','Trova MCD('+a+', '+b+'). Rispondi con un intero.', ans, null, ['Algoritmo di Euclide'], String(ans));
+    }
+    if(mode==='mcm'){
+      var ans2=lcm(a,b);
+      return makeQ('Numero teoria','input','Minimo comune multiplo','Trova mcm('+a+', '+b+'). Rispondi con un intero.', ans2, null, ['ab/MCD'], String(ans2));
+    }
+    if(mode==='primo'){
+      var candidates=[11,13,15,17,18,19,21,23,27,29,31,33,37,39];
+      var n=randChoice(candidates);
+      var isPrime=function(num){ if(num<2) return false; for(var i=2;i<=Math.sqrt(num);i++){ if(num%i===0) return false; } return true; };
+      var correct=isPrime(n)?'Sì':'No';
+      var stem='Numero primo?';
+      var meta='Il numero '+n+' è primo?';
+      return makeQ('Numero teoria','mc',stem,meta,correct,sanitizeChoices(stem+' '+meta,['Sì','No'],correct),['Ricorda: primo se ha solo due divisori positivi'],correct);
+    }
+    var num=randInt(20*D,90*D);
+    var div=randChoice([2,3,4,5,6,8,9,10]);
+    var ok=num%div===0;
+    var stem2='Divisibilità';
+    var meta2='Il numero '+num+' è divisibile per '+div+'?';
+    var answer=ok?'Sì':'No';
+    return makeQ('Numero teoria','mc',stem2,meta2,answer,sanitizeChoices(stem2+' '+meta2,['Sì','No'],answer),['Usa le regole di divisibilità (es. somma cifre, ultima cifra, ecc.)'],answer);
+  },
+  "Problemi": function(D){
+    var mode=randChoice(['percentuale','sconto','velocita','gruppi']);
+    if(mode==='percentuale'){
+      var kmD=randInt(3,8), g=randInt(4,7), bonus=randInt(10,30); var base=kmD*g; var tot=dec(base*(1+bonus/100),2);
+      return makeQ('Problemi','input','Problema su percentuali','Mia corre '+kmD+' km al giorno per '+g+' giorni. L\'ultimo giorno fa +'+bonus+'%. Quanti km totali? Arrotonda a 2 decimali.', tot, null, ['Totale base + bonus','Arrotonda a 2 decimali'], tot.toFixed(2));
+    }
+    if(mode==='sconto'){
+      var prezzo=randInt(40,120);
+      var sconto=randChoice([10,15,20,25]);
+      var finale=dec(prezzo*(1-sconto/100),2);
+      return makeQ('Problemi','input','Acquisto con sconto','Un capo costa '+prezzo+' €. Applica uno sconto del '+sconto+'%. Quanto paghi? Arrotonda a 2 decimali.',finale,null,['Calcola lo sconto: prezzo·(1 - percentuale/100)'],finale.toFixed(2));
+    }
+    if(mode==='velocita'){
+      var speed=randInt(20,60);
+      var hours=randInt(2,6);
+      var dist=speed*hours;
+      return makeQ('Problemi','input','Distanza e velocità','Un treno viaggia a '+speed+' km/h per '+hours+' ore. Quanti chilometri percorre?',dist,null,['Usa d = v·t'],String(dist));
+    }
+    var studenti=randInt(18,30);
+    var gruppo=randChoice([3,4,5,6]);
+    var gruppi=Math.floor(studenti/gruppo);
+    var stem='Divisione in gruppi';
+    var meta='Una classe di '+studenti+' studenti si divide in gruppi da '+gruppo+'. Quanti gruppi completi si formano?';
+    return makeQ('Problemi','input',stem,meta,gruppi,null,['Dividi il totale per la dimensione del gruppo','Considera solo i gruppi completi'],String(gruppi));
+  },
   "Statistiche": function(D){
     var fruits=['mele','pere','arance','banane'];
     var counts=fruits.map(function(){return randInt(6*D,15*D);});
     var listing = fruits.map(function(f,j){return f.charAt(0).toUpperCase()+f.slice(1)+'='+counts[j];}).join(', ');
-    var variant = randChoice(['quanto-frutto','massimo','somma','differenza','vero-falso']);
+    var variant = randChoice(['quanto-frutto','massimo','somma','differenza','vero-falso','media','range']);
     if(variant==='quanto-frutto'){
       var i=randInt(0,3);
       var stem='Lettura di tabella'; var meta='Tabella: '+listing+'. Quante '+fruits[i]+'?';
@@ -613,6 +871,17 @@ var Builders = {
       var i3=randInt(0,3); var j3=randInt(0,3); while(j3===i3) j3=randInt(0,3);
       var ans2 = Math.abs(counts[i3]-counts[j3]);
       return makeQ('Statistiche','input','Differenza tra voci','Tabella: '+listing+'. Quante unità in più tra '+fruits[i3]+' e '+fruits[j3]+'? (valore assoluto)', ans2, null, ['Calcola la differenza assoluta'], String(ans2));
+    }
+    if(variant==='media'){
+      var sumCounts=counts.reduce(function(acc,v){return acc+v;},0);
+      var avg=dec(sumCounts/fruits.length,2);
+      return makeQ('Statistiche','input','Media aritmetica','Tabella: '+listing+'. Qual è la media delle quantità? Arrotonda a 2 decimali.',avg,null,['Somma i valori e dividi per il numero di voci'],avg.toFixed(2));
+    }
+    if(variant==='range'){
+      var maxV2=Math.max.apply(null, counts);
+      var minV2=Math.min.apply(null, counts);
+      var range=maxV2-minV2;
+      return makeQ('Statistiche','input','Ampiezza dei dati','Tabella: '+listing+'. Calcola differenza tra valore massimo e minimo.',range,null,['Range = massimo - minimo'],String(range));
     }
     var i4=randInt(0,3); var j4=randInt(0,3); while(j4===i4) j4=randInt(0,3);
     var isTrue = counts[i4] > counts[j4];
