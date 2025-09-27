@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 1ª–2ª media (v12)</title>
+<title>MathQuest Lite Plus · 2ª media (v20.00)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
   html{-webkit-text-size-adjust:100%;}
+  *,*::before,*::after{box-sizing:border-box;}
   body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(135deg,#eef2ff,#e0f2fe);color:var(--fg)}
   .wrap{max-width:1000px;margin:0 auto;padding:18px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -19,7 +20,7 @@
   .pill.active{background:#111;color:#fff}
   .progress{height:10px;background:#e5e7eb;border-radius:8px;overflow:hidden}
   .bar{height:100%;background:var(--accent);width:0%}
-  input.answer{width:100%;padding:12px;border:1px solid #111;border-radius:12px;font-size:18px}
+  input.answer{width:100%;max-width:100%;padding:12px;border:1px solid #111;border-radius:12px;font-size:18px;box-sizing:border-box}
   .hint{background:#e0f2fe;border-radius:12px;padding:10px;font-size:14px;white-space:pre-wrap}
   .ok{background:#dcfce7;border-radius:12px;padding:10px}
   .bad{background:#fef9c3;border-radius:12px;padding:10px}
@@ -59,7 +60,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 1ª–2ª media (v12)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v20.00)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -674,7 +675,14 @@ function makeQuestion(){
 function renderQuestion(){
   var q = makeQuestion(); state.question = q; state.input=''; state.answeredThis=false; applyAccentForTopic(q.topic);
   $('topicLabel').textContent = state.topicFilter? ('Allenamento: '+state.topicFilter) : 'Allenamento: Tutti gli argomenti';
-  $('stem').textContent = q.stem; $('stemMeta').textContent = q.meta||''; $('feedback').innerHTML=''; $('hints').style.display='none'; $('hints').textContent = (q.hints||[]).map(function(h){return '• '+h;}).join('\n');
+  $('stem').textContent = q.stem; $('stemMeta').textContent = q.meta||''; $('feedback').innerHTML='';
+  var hintsBox = $('hints');
+  if(hintsBox){
+    hintsBox.style.display='none';
+    hintsBox.innerHTML='';
+    hintsBox.dataset.hints = JSON.stringify(q.hints||[]);
+    hintsBox.dataset.topic = q.topic || '';
+  }
   var ui = $('answerUI'); ui.innerHTML=''; var nextBtn=$('btnNext'); if(nextBtn) nextBtn.disabled=true;
   if(q.type==='mc'){
     var grid=document.createElement('div'); grid.className='choices-grid';
@@ -686,9 +694,34 @@ function renderQuestion(){
     ui.appendChild(grid);
   } else {
     var inp=document.createElement('input'); inp.type='text'; inp.className='answer'; inp.placeholder='Scrivi qui la risposta';
+    inp.autocomplete='off';
+    inp.autocapitalize='none';
+    inp.spellcheck=false;
+    var ansText = '';
+    if(q.answer!==undefined && q.answer!==null){ ansText = String(q.answer).trim(); }
+    var expectsNumeric = typeof q.answer === 'number';
+    if(!expectsNumeric && ansText){
+      expectsNumeric = /\d/.test(ansText) && /^[0-9\s.,+-/*()]+$/.test(ansText);
+    }
+    if(expectsNumeric){
+      var hasDecimal = ansText.indexOf('.')!==-1 || ansText.indexOf(',')!==-1;
+      inp.inputMode = hasDecimal ? 'decimal' : 'numeric';
+      inp.setAttribute('pattern','[0-9.,\s-]*');
+    }
+    inp.setAttribute('enterkeyhint','done');
     inp.onkeydown=function(e){ if(e.key==='Enter'){ confirmAnswer(); } };
     inp.oninput=function(e){ state.input=e.target.value; };
-    ui.appendChild(inp); inp.focus();
+    ui.appendChild(inp);
+    setTimeout(function(){
+      try {
+        inp.focus({preventScroll:true});
+      } catch(e) {
+        inp.focus();
+      }
+      if(typeof inp.scrollIntoView==='function'){
+        inp.scrollIntoView({block:'center', behavior:'smooth'});
+      }
+    },0);
   }
   renderHeader();
 }
@@ -732,7 +765,54 @@ function confirmAnswer(){
 }
 
 function nextQuestion(){ renderQuestion(); }
-function toggleHint(){ var h=$('hints'); h.style.display = (h.style.display==='none')? 'block':'none'; }
+function toggleHint(){
+  var h=$('hints');
+  if(!h) return;
+  if(h.style.display==='none'){
+    h.innerHTML='';
+    var intro=document.createElement('p');
+    intro.style.marginTop='0';
+    intro.innerHTML='<strong>Serve una mano?</strong> Leggi questi spunti prima di guardare la soluzione.';
+    h.appendChild(intro);
+    if(h.dataset && h.dataset.topic){
+      var topicLine=document.createElement('p');
+      topicLine.className='kicker';
+      topicLine.textContent='Argomento: '+h.dataset.topic;
+      h.appendChild(topicLine);
+    }
+    var hints=[];
+    try { hints=JSON.parse(h.dataset.hints||'[]'); } catch(e){ hints=[]; }
+    if(hints.length){
+      var list=document.createElement('ul');
+      list.style.marginTop='8px';
+      list.style.paddingLeft='20px';
+      hints.forEach(function(text){ var li=document.createElement('li'); li.textContent=text; list.appendChild(li); });
+      h.appendChild(list);
+    } else {
+      var none=document.createElement('p');
+      none.textContent='Per questa domanda non ci sono suggerimenti extra.';
+      h.appendChild(none);
+    }
+    var linkWrap=document.createElement('p');
+    linkWrap.style.marginTop='12px';
+    var link=document.createElement('a');
+    link.href='https://chat.openai.com/?model=gpt-4o-mini';
+    link.target='_blank';
+    link.rel='noopener noreferrer';
+    link.textContent='Apri "Studia e Impara" su ChatGPT';
+    linkWrap.appendChild(link);
+    var note=document.createElement('span');
+    note.style.display='block';
+    note.style.fontSize='13px';
+    note.style.color='var(--muted)';
+    note.textContent='Ti aiuta a ripassare l\'argomento senza svelare la soluzione.';
+    linkWrap.appendChild(note);
+    h.appendChild(linkWrap);
+    h.style.display='block';
+  } else {
+    h.style.display='none';
+  }
+}
 function similar(){ if(!state.question) return; renderQuestion(); }
 
 $('btnHome').onclick=function(){ show('home'); };
