@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 1ª–2ª media (v20.02)</title>
+<title>MathQuest Lite Plus · 2ª media (v20.03)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -13,6 +13,10 @@
   body.keyboard-open .wrap{padding-bottom:calc(var(--keyboard-offset,0px) + 80px);}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .btn{background:var(--accent);color:#fff;border:none;border-radius:16px;padding:12px 14px;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.2);min-height:48px}
+  .btn,
+  .numeric-keypad button,
+  .numeric-actions button,
+  .choice{touch-action:manipulation;}
   .btn.ghost{background:#fff;color:#111;border:1px solid #111}
   .btn[disabled]{opacity:.6;cursor:not-allowed}
   .card{background:rgba(255,255,255,.93);backdrop-filter:blur(6px);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:14px}
@@ -67,7 +71,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 1ª–2ª media (v20.02)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v20.03)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -557,54 +561,168 @@ var Builders = {
     var c=randInt(5*D,40*D); return makeQ('Misure','input','Conversione di area','Converti '+c+' cm² in mm².',c*100,null,["Ogni lato di 1 cm vale 10 mm: per le aree moltiplichi quindi per 10×10 = 100.","Moltiplica l'area iniziale per 100 per ottenere il valore in mm²."],String(c*100));
   },
   "Potenze": function(D){
-    var mode = randChoice(['calc','product','quotient','powerOfPower','tenPow','compare','expand','compress']);
+    var mode = randChoice(['calc','product','quotient','powerOfPower','tenPow','compare','expand','compress','mixed','findExp','tenDecomp']);
     if(mode==='calc'){
-      var a=randChoice([2,3,4,5,6,7,8,9]); var e=randChoice([2,3,4]);
-      return makeQ('Potenze','input','Calcola la potenza','Calcola '+a+'^'+e+'. Rispondi con un intero.', Math.pow(a,e), null, ["Riscrivi la potenza come moltiplicazione ripetuta: moltiplica la base per se stessa e volte l'esponente.","Calcola passo passo (es. 3^4 = 3×3=9, 9×3=27, 27×3=81) per evitare errori."], String(Math.pow(a,e)));
+      var a=randChoice([2,3,4,5,6,7,8,9,10]); var e=randChoice([2,3,4,5]);
+      var value = Math.pow(a,e);
+      var stemCalc = randChoice(['Calcola la potenza','Potenza con base intera','Valuta la potenza']);
+      var metaCalc = randChoice([
+        'Quanto vale '+a+'^'+e+'? Rispondi con un intero.',
+        'Calcola '+a+' elevato alla '+e+' (usa solo numeri interi).',
+        'Scrivi il risultato della potenza '+a+'^'+e+'.'
+      ]);
+      return makeQ('Potenze','input',stemCalc,metaCalc, value, null, [
+        'Riscrivi la potenza come moltiplicazione ripetuta: moltiplica la base per se stessa '+e+' volte.',
+        'Calcola passo passo per evitare errori e confronta il risultato con potenze note vicine per controllare.'
+      ], String(value));
     }
     if(mode==='product'){
-      var ab=randChoice([2,3,5,7]); var m=randInt(1,4), n=randInt(1,4);
+      var ab=randChoice([2,3,4,5,7]); var m=randInt(1,4), n=randInt(1,4);
       var ansExp=m+n;
-      return makeQ('Potenze','input','Prodotto di potenze con la stessa base','Semplifica: '+ab+'^'+m+' · '+ab+'^'+n+' = '+ab+'^?', ansExp, null, ["Quando la base è la stessa somma gli esponenti: a^m · a^n = a^(m+n).","Somma m e n e usa il totale come nuovo esponente della base."], String(ansExp));
+      return makeQ('Potenze','input','Prodotto di potenze con la stessa base','Semplifica: '+ab+'^'+m+' · '+ab+'^'+n+' = '+ab+'^?', ansExp, null, [
+        'Quando la base è la stessa somma gli esponenti: a^m · a^n = a^(m+n).',
+        'Somma gli esponenti m e n e usa il totale come nuovo esponente della base.'
+      ], String(ansExp));
     }
     if(mode==='quotient'){
-      var aq=randChoice([2,3,5,7]); var m2=randInt(2,5), n2=randInt(1,m2-1);
+      var aq=randChoice([2,3,4,5,7]); var m2=randInt(2,6), n2=randInt(1,Math.max(1,m2-1));
+      if(n2>=m2){ n2=m2-1; }
       var ansExp2=m2-n2;
-      return makeQ('Potenze','input','Quoziente di potenze con la stessa base','Semplifica: '+aq+'^'+m2+' : '+aq+'^'+n2+' = '+aq+'^?', ansExp2, null, ["In una divisione con la stessa base sottrai gli esponenti: a^m : a^n = a^(m−n).","Sottrai l'esponente del divisore da quello del dividendo e usa il risultato come nuovo esponente."], String(ansExp2));
+      return makeQ('Potenze','input','Quoziente di potenze con la stessa base','Semplifica: '+aq+'^'+m2+' : '+aq+'^'+n2+' = '+aq+'^?', ansExp2, null, [
+        'In una divisione con la stessa base sottrai gli esponenti: a^m : a^n = a^(m−n).',
+        'Sottrai l’esponente del divisore da quello del dividendo e usa il risultato come nuovo esponente.'
+      ], String(ansExp2));
     }
     if(mode==='powerOfPower'){
-      var ap=randChoice([2,3,4,5]); var m3=randInt(2,4), n3=randInt(2,3);
+      var ap=randChoice([2,3,4,5,6]); var m3=randInt(2,4), n3=randInt(2,3);
       var ansExp3=m3*n3;
-      return makeQ('Potenze','input','Potenza di potenza','Semplifica: ('+ap+'^'+m3+')^'+n3+' = '+ap+'^?', ansExp3, null, ["Quando elevi una potenza ad un'altra potenza moltiplica gli esponenti: (a^m)^n = a^(m·n).","Moltiplica m per n e usa il prodotto come nuovo esponente della base."], String(ansExp3));
+      return makeQ('Potenze','input','Potenza di potenza','Semplifica: ('+ap+'^'+m3+')^'+n3+' = '+ap+'^?', ansExp3, null, [
+        'Quando elevi una potenza ad un’altra potenza moltiplica gli esponenti: (a^m)^n = a^(m·n).',
+        'Moltiplica m per n e usa il prodotto come nuovo esponente della base.'
+      ], String(ansExp3));
     }
     if(mode==='tenPow'){
-      var n4=randInt(1,5);
+      var n4=randInt(0,6);
       var ans4 = Math.pow(10,n4);
-      return makeQ('Potenze','input','Potenze di 10','Calcola 10^'+n4+'.', ans4, null, ["Scrivi 1 seguito da n zeri oppure pensa a spostare la virgola di n posti verso destra.","Controlla che il numero finale abbia esattamente n zeri dopo l'1."], String(ans4));
+      var metaTen = n4===0 ? 'Quanto vale 10^0? Ricorda le potenze con esponente zero.' : 'Calcola 10^'+n4+'.';
+      return makeQ('Potenze','input','Potenze di 10',metaTen, ans4, null, [
+        n4===0 ? 'Qualsiasi numero (tranne 0) elevato alla 0 dà 1.' : 'Scrivi 1 seguito da '+n4+' zeri oppure sposta la virgola di '+n4+' posti a destra.',
+        'Controlla di avere la quantità corretta di zeri e nessun altro numero diverso da 1 all’inizio.'
+      ], String(ans4));
     }
     if(mode==='compare'){
-      var a5=randChoice([2,3,4,5]); var b5=randChoice([2,3,4,5]);
+      var a5=randChoice([2,3,4,5,6]); var b5=randChoice([2,3,4,5,6]);
       var m5=randInt(2,5); var n5=randInt(2,5);
       var A = Math.pow(a5,m5), B = Math.pow(b5,n5);
       var correct = (A===B) ? (a5+'^'+m5) : (A>B? (a5+'^'+m5) : (b5+'^'+n5));
-      var stem='Confronto tra potenze'; var meta='Quale è maggiore?';
+      var stem='Confronto tra potenze'; var meta='Quale espressione rappresenta il numero maggiore?';
       var ch=[a5+'^'+m5, b5+'^'+n5, a5+'^'+n5, b5+'^'+m5];
-      return makeQ('Potenze','mc',stem,meta,correct, sanitizeChoices(stem+' '+meta, ch, correct), ["Confronta quanto velocemente crescono le potenze: valuta base ed esponente insieme.","Se necessario calcola i valori (anche approssimati) o confronta gli esponenti quando la base è uguale."], correct);
+      return makeQ('Potenze','mc',stem,meta,correct, sanitizeChoices(stem+' '+meta, ch, correct), [
+        'Confronta quanto velocemente crescono le potenze: valuta base ed esponente insieme.',
+        'Se necessario calcola (anche mentalmente) le potenze per confrontare i risultati oppure confronta solo gli esponenti quando la base è uguale.'
+      ], correct);
     }
     if(mode==='expand'){
-      var a6=randChoice([2,3,4,5]); var e6=randInt(2,5);
-      var correctStr = new Array(e6+1).join(String(a6)+' × ').slice(0,-3);
+      var a6=randChoice([2,3,4,5]); var e6=randInt(2,6);
+      var pieces = new Array(e6+1).join(String(a6)+' × ').slice(0,-3);
       var stem2='Espansione di una potenza'; var meta2='Espandi '+a6+'^'+e6+' come moltiplicazione ripetuta.';
-      return makeQ('Potenze','mc',stem2,meta2,correctStr, sanitizeChoices(stem2+' '+meta2, [correctStr, a6+'^'+e6, a6+' × '+a6+'^'+(e6-1), (a6+1)+' × '+a6+'^'+(e6-1)], correctStr), ["Riscrivi la potenza come moltiplicazione della base ripetuta per il numero di volte indicato dall'esponente.","Assicurati che la base compaia esattamente e volte nella catena di prodotti."], correctStr);
+      return makeQ('Potenze','mc',stem2,meta2,pieces, sanitizeChoices(stem2+' '+meta2, [pieces, a6+'^'+e6, a6+' × '+a6+'^'+(e6-1), (a6+1)+' × '+a6+'^'+(e6-1)], pieces), [
+        'Riscrivi la potenza come moltiplicazione della base ripetuta per il numero di volte indicato dall’esponente.',
+        'Conta quante copie della base compaiono e assicurati che coincidano con il valore dell’esponente.'
+      ], pieces);
     }
     if(mode==='compress'){
-      var a7=randChoice([2,3,5,7]); var e7=randInt(2,5);
+      var a7=randChoice([2,3,4,5,6,7]); var e7=randInt(2,5);
       var stem3='Scrittura compatta'; var meta3='Scrivi in forma di potenza: ' + new Array(e7+1).join(String(a7)+' × ').slice(0,-3);
       var correct2 = a7+'^'+e7;
-      return makeQ('Potenze','mc',stem3,meta3,correct2, sanitizeChoices(stem3+' '+meta3, [correct2, a7+'^'+(e7-1), (a7+1)+'^'+e7, a7+'^'+(e7+1)], correct2), ["Conta quante volte compare la stessa base nella moltiplicazione.","Scrivi la potenza con quella base e usa il conteggio come esponente."], correct2);
+      return makeQ('Potenze','mc',stem3,meta3,correct2, sanitizeChoices(stem3+' '+meta3, [correct2, a7+'^'+(e7-1), (a7+1)+'^'+e7, a7+'^'+(e7+1)], correct2), [
+        'Conta quante volte compare la stessa base nella moltiplicazione.',
+        'Scrivi la potenza usando quella base e usa il conteggio come esponente.'
+      ], correct2);
+    }
+    if(mode==='mixed'){
+      var baseMix = randChoice([2,3,4,5,6,7]);
+      var mMix = randInt(1,4), nMix = randInt(1,4);
+      var maxSub = mMix + nMix - 1;
+      var kMix = randInt(1, Math.max(1, maxSub));
+      var ansMix = mMix + nMix - kMix;
+      var metaMix = 'Semplifica: '+baseMix+'^'+mMix+' · '+baseMix+'^'+nMix+' : '+baseMix+'^'+kMix+' = '+baseMix+'^?';
+      return makeQ('Potenze','input','Combinazione di potenze',metaMix, ansMix, null, [
+        'Somma gli esponenti delle potenze che stai moltiplicando: m + n.',
+        'Sottrai l’esponente della potenza al denominatore dal totale ottenuto per trovare l’esponente finale.'
+      ], String(ansMix));
+    }
+    if(mode==='findExp'){
+      var baseFind = randChoice([2,3,4,5,6]);
+      var expFind = randInt(2,5);
+      var valueFind = Math.pow(baseFind, expFind);
+      return makeQ('Potenze','input','Trova l’esponente','Completa: '+baseFind+'^? = '+valueFind+'. Fornisci l’esponente intero.', expFind, null, [
+        'Pensa a quante volte devi moltiplicare '+baseFind+' per se stesso per ottenere '+valueFind+'.',
+        'Dividi ripetutamente '+valueFind+' per '+baseFind+' finché arrivi a 1: il numero di divisioni è l’esponente cercato.'
+      ], String(expFind));
+    }
+    if(mode==='tenDecomp'){
+      var coeff = randChoice([2,3,4,5,6,8,9]);
+      var expTen = randInt(1,4);
+      var answerTen = coeff * Math.pow(10, expTen);
+      var stemTen = 'Scrittura in notazione scientifica semplice';
+      var metaTenDecomp = 'Riscrivi '+coeff+' × 10^'+expTen+' come numero intero.';
+      return makeQ('Potenze','input',stemTen,metaTenDecomp, answerTen, null, [
+        'Calcola la potenza di 10 aggiungendo '+expTen+' zeri al coefficiente.',
+        'Moltiplica il coefficiente per 10^'+expTen+' e controlla di avere spostato la virgola di '+expTen+' posizioni a destra.'
+      ], String(answerTen));
     }
   },
-  "Radici": function(D){ var sq=randChoice([36,49,64,81,100,121,144,169]); return makeQ('Radici','input','Calcola la radice quadrata','√'+sq+'. Rispondi con un intero.', Math.sqrt(sq), null, ["Cerca il numero che moltiplicato per se stesso dà " + sq + ".","Prova i quadrati perfetti vicini (6^2=36, 7^2=49, 8^2=64, ...) finché trovi il valore giusto."], String(Math.sqrt(sq))); },
+  "Radici": function(D){
+    var roots = []; for(var i=2;i<=20;i++){ roots.push(i*i); }
+    var mode = randChoice(['value','missing','compare','identify']);
+    if(mode==='value'){
+      var sq = randChoice(roots);
+      var root = Math.round(Math.sqrt(sq));
+      var stemR = randChoice(['Calcola la radice quadrata','Radice quadrata di un quadrato perfetto','Valuta la radice quadrata']);
+      var metaR = randChoice([
+        'Quanto vale √'+sq+'? Rispondi con un intero.',
+        'Trova il numero che elevato al quadrato dà '+sq+'.',
+        'Calcola √'+sq+' sapendo che si tratta di un quadrato perfetto.'
+      ]);
+      return makeQ('Radici','input',stemR,metaR, root, null, [
+        'Cerca il numero che moltiplicato per se stesso restituisce '+sq+'.',
+        'Ricorda i quadrati perfetti: 6^2=36, 7^2=49, 8^2=64… confrontali con il valore dato.'
+      ], String(root));
+    }
+    if(mode==='missing'){
+      var base = randInt(3,18);
+      var radicand = base*base;
+      return makeQ('Radici','input','Trova il radicando','Completa: √? = '+base+'. Fornisci il numero sotto radice.', radicand, null, [
+        'Eleva '+base+' al quadrato (moltiplicalo per se stesso) per trovare il radicando.',
+        'Ricorda che (√x)^2 = x: quindi se √x = '+base+', allora x = '+base+'^2.'
+      ], String(radicand));
+    }
+    if(mode==='compare'){
+      var shuffled = shuffle(roots.slice());
+      var options = shuffled.slice(0,4);
+      var biggest = options.reduce(function(max,v){ return Math.sqrt(v) > Math.sqrt(max) ? v : max; }, options[0]);
+      var correct = '√'+biggest;
+      var displayChoices = options.map(function(v){ return '√'+v; });
+      return makeQ('Radici','mc','Confronto di radici','Quale radice quadrata ha il valore più grande?', correct, sanitizeChoices('Confronto di radici', displayChoices, correct), [
+        'Per confrontare radici quadrate positive è sufficiente confrontare i numeri sotto radice.',
+        'Individua il radicando più grande: la sua radice quadrata sarà quella con valore maggiore.'
+      ], correct);
+    }
+    if(mode==='identify'){
+      var perfect = randChoice(roots);
+      var nonSquares = [];
+      while(nonSquares.length<3){
+        var candidate = randInt(10,400);
+        if(roots.indexOf(candidate)===-1 && nonSquares.indexOf(candidate)===-1){ nonSquares.push(candidate); }
+      }
+      var options2 = sanitizeChoices('Quadrati perfetti', [String(perfect)].concat(nonSquares.map(String)), String(perfect));
+      return makeQ('Radici','mc','Quadrati perfetti','Quale di questi numeri è un quadrato perfetto?', String(perfect), options2, [
+        'Un quadrato perfetto è il quadrato di un numero intero (es. 12^2 = 144).',
+        'Prova a estrarre la radice dei numeri proposti: solo quello che produce un intero è un quadrato perfetto.'
+      ], String(perfect));
+    }
+  },
   "Numero teoria": function(D){ var a=randInt(6*D,20*D), b=randInt(6*D,20*D); var mode=randChoice(['MCD','mcm']); if(mode==='MCD'){ var ans=gcd(a,b); return makeQ('Numero teoria','input','Massimo Comune Divisore','Trova MCD('+a+', '+b+'). Rispondi con un intero.', ans, null, ["Dividi il numero maggiore per il minore e prendi il resto.","Ripeti dividendo il divisore per il resto finché il resto è zero: l'ultimo divisore è il MCD."], String(ans)); } var ans2=lcm(a,b); return makeQ('Numero teoria','input','Minimo comune multiplo','Trova mcm('+a+', '+b+'). Rispondi con un intero.', ans2, null, ["Calcola prima il MCD dei due numeri (puoi usare l'algoritmo di Euclide).","Usa la formula mcm = (a × b) / MCD per trovare il minimo comune multiplo."], String(ans2)); },
   "Problemi": function(D){
     var variant = randChoice(['run','bakery','discount','tip','factory']);
