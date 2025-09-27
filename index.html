@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 1ª–2ª media (v12)</title>
+<title>MathQuest Lite Plus · 1ª–2ª media (v20.01)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
   html{-webkit-text-size-adjust:100%;}
   body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(135deg,#eef2ff,#e0f2fe);color:var(--fg)}
   .wrap{max-width:1000px;margin:0 auto;padding:18px}
+  body.keyboard-open .wrap{padding-bottom:calc(var(--keyboard-offset,0px) + 80px);}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .btn{background:var(--accent);color:#fff;border:none;border-radius:16px;padding:12px 14px;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.2);min-height:48px}
   .btn.ghost{background:#fff;color:#111;border:1px solid #111}
@@ -59,7 +60,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 1ª–2ª media (v12)</h1>
+      <h1>MathQuest Lite Plus · 1ª–2ª media (v20.01)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -224,6 +225,8 @@ function shuffle(arr){ return arr.map(function(v){return [Math.random(),v];}).so
 function fmtUnit(val,unit){ return String(val)+' '+unit; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
+var STUDY_APP_URL = 'https://fabcarim.github.io/studia/';
+
 var topicAccent = {
   "Calcolo interi":"var(--accent2)",
   "Decimali":"var(--accent3)",
@@ -264,7 +267,8 @@ var state = {
   lastDayKey: null,
   completions: [],
   goalShownToday: false,
-  badges: []
+  badges: [],
+  studyHelperShown: false
 };
 
 var topicsList = ["Calcolo interi","Decimali","Frazioni","Percentuali","Proporzioni","Equazioni","Geometria","Misure","Potenze","Radici","Numero teoria","Problemi","Statistiche"];
@@ -585,7 +589,47 @@ var Builders = {
   },
   "Radici": function(D){ var sq=randChoice([36,49,64,81,100,121,144,169]); return makeQ('Radici','input','Calcola la radice quadrata','√'+sq+'. Rispondi con un intero.', Math.sqrt(sq), null, ['Numero che al quadrato dà '+sq], String(Math.sqrt(sq))); },
   "Numero teoria": function(D){ var a=randInt(6*D,20*D), b=randInt(6*D,20*D); var mode=randChoice(['MCD','mcm']); if(mode==='MCD'){ var ans=gcd(a,b); return makeQ('Numero teoria','input','Massimo Comune Divisore','Trova MCD('+a+', '+b+'). Rispondi con un intero.', ans, null, ['Algoritmo di Euclide'], String(ans)); } var ans2=lcm(a,b); return makeQ('Numero teoria','input','Minimo comune multiplo','Trova mcm('+a+', '+b+'). Rispondi con un intero.', ans2, null, ['ab/MCD'], String(ans2)); },
-  "Problemi": function(D){ var kmD=randInt(3,8), g=randInt(4,7), bonus=randInt(10,30); var base=kmD*g; var tot=dec(base*(1+bonus/100),2); return makeQ('Problemi','input','Problema su percentuali','Mia corre '+kmD+' km al giorno per '+g+' giorni. L\'ultimo giorno fa +'+bonus+'%. Quanti km totali? Arrotonda a 2 decimali.', tot, null, ['Totale base + bonus','Arrotonda a 2 decimali'], tot.toFixed(2)); },
+  "Problemi": function(D){
+    var variant = randChoice(['run','bakery','discount','tip','factory']);
+    if(variant==='run'){
+      var kmD=randInt(3,8), g=randInt(4,7), bonus=randInt(10,35);
+      var regularDays = g-1;
+      var baseKm = kmD*regularDays;
+      var lastDay = dec(kmD*(1+bonus/100),2);
+      var tot=dec(baseKm+lastDay,2);
+      var meta='Mia corre '+kmD+' km al giorno per '+regularDays+' giorni. L\'ultimo giorno aumenta del +'+bonus+'% rispetto a '+kmD+' km. Quanti km percorre in totale nei '+g+' giorni? Arrotonda a 2 decimali.';
+      return makeQ('Problemi','input','Problema su percentuali',meta, tot, null, ['Calcola i km dei primi giorni','Aggiungi il giorno con il bonus e arrotonda a 2 decimali'], tot.toFixed(2));
+    }
+    if(variant==='bakery'){
+      var trays=randInt(12,22), days=randInt(4,6), extra=randInt(15,35);
+      var regular=days-1;
+      var base=trays*regular;
+      var last=dec(trays*(1+extra/100),2);
+      var total=dec(base+last,2);
+      var meta2='Lina prepara '+trays+' biscotti al giorno per '+regular+' giorni. L\'ultimo giorno ne sforna il +'+extra+'% rispetto al solito. Quanti biscotti prepara in tutto nei '+days+' giorni? Arrotonda a 2 decimali.';
+      return makeQ('Problemi','input','Produzione con bonus percentuale',meta2,total,null,['Somma la produzione regolare','Calcola i biscotti bonus e aggiungili'], total.toFixed(2));
+    }
+    if(variant==='discount'){
+      var price=randInt(18,60);
+      var sale=randChoice([10,15,20,25,30,35]);
+      var pay=dec(price*(1-sale/100),2);
+      var meta3='Una felpa costa '+price+'€. Durante i saldi c\'è uno sconto del '+sale+'%. Quanto paghi la felpa? Arrotonda a 2 decimali.';
+      return makeQ('Problemi','input','Prezzo scontato',meta3,pay,null,['Trova lo sconto in euro','Sottrai lo sconto dal prezzo iniziale'], pay.toFixed(2));
+    }
+    if(variant==='tip'){
+      var conto=randInt(20,55);
+      var tipPerc=randChoice([10,12,15,18,20]);
+      var totalBill=dec(conto*(1+tipPerc/100),2);
+      var meta4='Al ristorante il conto è di '+conto+'€. Aggiungi una mancia del '+tipPerc+'%. Quanto paghi in totale? Arrotonda a 2 decimali.';
+      return makeQ('Problemi','input','Conto con mancia',meta4,totalBill,null,['Calcola la mancia','Somma conto e mancia'], totalBill.toFixed(2));
+    }
+    var baseProd=randInt(8,15), giorni=randInt(5,8), boost=randInt(12,30);
+    var regularProd=baseProd*(giorni-1);
+    var lastDayProd=dec(baseProd*(1+boost/100),2);
+    var totProd=dec(regularProd+lastDayProd,2);
+    var meta5='Un laboratorio artigianale produce '+baseProd+' quaderni al giorno per '+(giorni-1)+' giorni. L\'ultimo giorno la produzione cresce del +'+boost+'%. Quanti quaderni realizza complessivamente in '+giorni+' giorni? Arrotonda a 2 decimali.';
+    return makeQ('Problemi','input','Produzione giornaliera con aumento',meta5,totProd,null,['Conta i giorni standard','Aggiungi il giorno potenziato'], totProd.toFixed(2));
+  },
   "Statistiche": function(D){
     var fruits=['mele','pere','arance','banane'];
     var counts=fruits.map(function(){return randInt(6*D,15*D);});
@@ -672,9 +716,20 @@ function makeQuestion(){
 }
 
 function renderQuestion(){
-  var q = makeQuestion(); state.question = q; state.input=''; state.answeredThis=false; applyAccentForTopic(q.topic);
+  var q = makeQuestion();
+  state.question = q;
+  state.input='';
+  state.answeredThis=false;
+  state.studyHelperShown=false;
+  document.body.classList.remove('keyboard-open');
+  applyAccentForTopic(q.topic);
   $('topicLabel').textContent = state.topicFilter? ('Allenamento: '+state.topicFilter) : 'Allenamento: Tutti gli argomenti';
-  $('stem').textContent = q.stem; $('stemMeta').textContent = q.meta||''; $('feedback').innerHTML=''; $('hints').style.display='none'; $('hints').textContent = (q.hints||[]).map(function(h){return '• '+h;}).join('\n');
+  $('stem').textContent = q.stem; $('stemMeta').textContent = q.meta||''; $('feedback').innerHTML='';
+  var hintsBox=$('hints');
+  hintsBox.style.display='none';
+  var hintsText=(q.hints||[]).map(function(h){return '• '+h;}).join('\n');
+  hintsBox.textContent=hintsText;
+  hintsBox.dataset.base=hintsText;
   var ui = $('answerUI'); ui.innerHTML=''; var nextBtn=$('btnNext'); if(nextBtn) nextBtn.disabled=true;
   if(q.type==='mc'){
     var grid=document.createElement('div'); grid.className='choices-grid';
@@ -688,6 +743,8 @@ function renderQuestion(){
     var inp=document.createElement('input'); inp.type='text'; inp.className='answer'; inp.placeholder='Scrivi qui la risposta';
     inp.onkeydown=function(e){ if(e.key==='Enter'){ confirmAnswer(); } };
     inp.oninput=function(e){ state.input=e.target.value; };
+    inp.onfocus=function(){ setTimeout(function(){ try { inp.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){} }, 120); };
+    inp.onblur=function(){ document.body.classList.remove('keyboard-open'); };
     ui.appendChild(inp); inp.focus();
   }
   renderHeader();
@@ -732,8 +789,64 @@ function confirmAnswer(){
 }
 
 function nextQuestion(){ renderQuestion(); }
-function toggleHint(){ var h=$('hints'); h.style.display = (h.style.display==='none')? 'block':'none'; }
+function buildStudyPrompt(){
+  if(!state.question) return '';
+  var parts=[state.question.stem];
+  if(state.question.meta){ parts.push(state.question.meta); }
+  return 'Spiega passo passo questo problema di matematica per una studentessa di seconda media:\n\n'+parts.join('\n');
+}
+function launchStudyHelper(){
+  var prompt = buildStudyPrompt();
+  if(!prompt) return;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(prompt).catch(function(err){ console.log('Clipboard hint err', err); });
+  }
+  var sep = STUDY_APP_URL.indexOf('?')===-1? '?' : '&';
+  var url = STUDY_APP_URL + sep + 'prompt=' + encodeURIComponent(prompt);
+  var opened = window.open(url, '_blank');
+  if(!opened){
+    window.open('https://chat.openai.com/', '_blank');
+  }
+  state.studyHelperShown=true;
+}
+function maybeLaunchStudyHelper(){
+  if(state.studyHelperShown) return;
+  launchStudyHelper();
+}
+function toggleHint(){
+  var h=$('hints');
+  if(!h) return;
+  var base = h.dataset.base || '';
+  var show = (h.style.display==='none');
+  if(show){
+    var notice = 'Ho copiato il testo del problema negli appunti e apro “Studia e Impara” in una nuova scheda.';
+    var extra = base ? ('\n\n'+base) : '';
+    h.textContent = notice + extra;
+    h.style.display='block';
+    maybeLaunchStudyHelper();
+  } else {
+    h.textContent = base;
+    h.style.display='none';
+  }
+}
 function similar(){ if(!state.question) return; renderQuestion(); }
+
+function setupKeyboardListener(){
+  if(!window.visualViewport) return;
+  var viewport = window.visualViewport;
+  function apply(){
+    var diff = Math.max(0, Math.round((window.innerHeight||viewport.height) - viewport.height));
+    if(diff<=0 && viewport.offsetTop>0){ diff = Math.round(viewport.offsetTop); }
+    if(!isFinite(diff) || diff<0){ diff = 0; }
+    document.body.style.setProperty('--keyboard-offset', diff+'px');
+    if(diff>20){ document.body.classList.add('keyboard-open'); }
+    else { document.body.classList.remove('keyboard-open'); }
+  }
+  viewport.addEventListener('resize', apply);
+  viewport.addEventListener('scroll', apply);
+  window.addEventListener('resize', apply);
+  apply();
+}
 
 $('btnHome').onclick=function(){ show('home'); };
 $('btnPlay').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
@@ -807,6 +920,7 @@ function renderByTopic(){
   renderBadgesList();
   renderHomeBadges();
   ensureCatalogBadges();
+  setupKeyboardListener();
 })();
 
 // PWA: registra il Service Worker
