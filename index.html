@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 2ª media (v20.03)</title>
+<title>MathQuest Lite Plus · 2ª media (v20.04)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -50,6 +50,13 @@
   .badge-tile.locked{opacity:.8}
   .badge-title{font-weight:700}
   .badge-cat{font-size:12px;color:var(--muted)}
+  table.recent-log{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+  table.recent-log th{padding:6px 8px;text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid #e5e7eb}
+  table.recent-log td{padding:8px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+  .tag{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:600}
+  .tag.ok{background:#dcfce7;color:#166534}
+  .tag.ko{background:#fee2e2;color:#991b1b}
+  .tag.diff{background:#e0e7ff;color:#312e81}
   @media (max-width: 820px) {
     .wrap { padding: 14px; }
     h1 { font-size: 22px; }
@@ -71,7 +78,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 2ª media (v20.03)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v20.04)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -184,8 +191,14 @@
         <div class="row" style="margin-top:8px">
           <button class="btn" id="btnExport">Esporta CSV</button>
         </div>
+        <div style="margin-top:16px">
+          <h3 style="margin:0">Registro ultime 20 risposte</h3>
+          <div class="kicker" id="recentMeta" style="margin-top:4px">Ancora nessun esercizio registrato.</div>
+          <div id="recentList" style="margin-top:8px;overflow-x:auto"></div>
+        </div>
         <div style="margin-top:10px" id="byTopic"></div>
         <div style="margin-top:10px" id="suggestions" class="kicker"></div>
+        <div class="kicker" id="autoDiffNote" style="margin-top:10px"></div>
       </div>
     </section>
 
@@ -808,7 +821,7 @@ function show(section){
   });
   state.screen=section;
   if(section==='play'){ renderBadges(); }
-  if(section==='progress'){ renderBadgesList(); }
+  if(section==='progress'){ renderBadgesList(); renderRecentHistory(); }
   if(section==='home'){ renderHomeBadges(); }
   renderHeader();
 }
@@ -817,6 +830,107 @@ function renderHeader(){
   $('streak').textContent = state.streak;
   $('topicLabel').textContent = state.topicFilter? ('Allenamento: '+state.topicFilter) : 'Allenamento: Tutti gli argomenti';
 }
+function renderRecentHistory(){
+  var wrap=$('recentList');
+  var meta=$('recentMeta');
+  if(!wrap) return;
+  var stats=recentWindow(20);
+  if(meta){
+    if(stats.attempts){
+      var base='Ultimi '+Math.min(stats.attempts,20)+' esercizi';
+      var accText=stats.acc!==null?(' · Accuratezza: '+stats.acc+'%'):'';
+      var streakText=state.streak?(' · Streak attuale: '+state.streak):'';
+      meta.textContent=base+' · Corrette: '+stats.ok+'/'+stats.attempts+accText+streakText+' · Livello attuale: L'+state.difficulty;
+    } else {
+      meta.textContent='Ultimi 20 esercizi: inizia una sessione per riempire il registro.';
+    }
+  }
+  wrap.innerHTML='';
+  if(!stats.attempts){
+    var empty=document.createElement('div');
+    empty.className='kicker';
+    empty.textContent='Completa qualche esercizio per vedere i progressi nel dettaglio.';
+    wrap.appendChild(empty);
+    return;
+  }
+  var table=document.createElement('table');
+  table.className='recent-log';
+  var thead=document.createElement('thead');
+  var headRow=document.createElement('tr');
+  ['Quando','Argomento','Diff.','Richiesta','Risposta','Esito'].forEach(function(label){
+    var th=document.createElement('th');
+    th.textContent=label;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  var tbody=document.createElement('tbody');
+  state.history.slice(-20).reverse().forEach(function(h){
+    var tr=document.createElement('tr');
+    var date=h && h.ts? new Date(h.ts):null;
+    var whenTd=document.createElement('td');
+    if(date){
+      var timeDiv=document.createElement('div');
+      timeDiv.textContent=date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      var dayDiv=document.createElement('div');
+      dayDiv.textContent=date.toLocaleDateString();
+      dayDiv.className='kicker';
+      whenTd.appendChild(timeDiv);
+      whenTd.appendChild(dayDiv);
+    } else {
+      whenTd.textContent='—';
+    }
+    tr.appendChild(whenTd);
+
+    var topicTd=document.createElement('td');
+    topicTd.textContent=h.topic||'—';
+    tr.appendChild(topicTd);
+
+    var diffTd=document.createElement('td');
+    var diffSpan=document.createElement('span');
+    diffSpan.className='tag diff';
+    var diffLabel=h.difficulty?('L'+h.difficulty):'—';
+    diffSpan.textContent=diffLabel;
+    diffTd.appendChild(diffSpan);
+    tr.appendChild(diffTd);
+
+    var reqTd=document.createElement('td');
+    var stemDiv=document.createElement('div');
+    stemDiv.textContent=h.stem||'—';
+    stemDiv.style.fontWeight='600';
+    reqTd.appendChild(stemDiv);
+    if(h.meta){
+      var metaDiv=document.createElement('div');
+      metaDiv.className='kicker';
+      metaDiv.textContent=h.meta;
+      reqTd.appendChild(metaDiv);
+    }
+    tr.appendChild(reqTd);
+
+    var respTd=document.createElement('td');
+    var givenDiv=document.createElement('div');
+    var givenVal=(h.given!==undefined && h.given!=='')? h.given : '(vuoto)';
+    givenDiv.textContent=givenVal;
+    respTd.appendChild(givenDiv);
+    var expDiv=document.createElement('div');
+    expDiv.className='kicker';
+    expDiv.textContent='Atteso: '+(h.answer!==undefined? h.answer:'—');
+    respTd.appendChild(expDiv);
+    tr.appendChild(respTd);
+
+    var esitoTd=document.createElement('td');
+    var esitoSpan=document.createElement('span');
+    esitoSpan.className='tag '+(h.ok? 'ok':'ko');
+    esitoSpan.textContent=h.ok? 'Corretto':'Da rivedere';
+    esitoTd.appendChild(esitoSpan);
+    tr.appendChild(esitoTd);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+}
+
 function renderStats(){
   var corToday = todayHistory(state.history).filter(function(h){return h.ok;}).length;
   var accAll = state.answered? Math.round(100*state.correct/state.answered):0;
@@ -837,6 +951,8 @@ function renderStats(){
   if($('goalHint')) $('goalHint').textContent = left>0 ? ('Ti mancano '+left+' risposte corrette per l\'obiettivo di oggi.') : 'Obiettivo raggiunto!';
   if($('goalNote')) $('goalNote').textContent = 'Se non completi oggi, domani l\'obiettivo salirà a circa '+Math.ceil(state.dailyGoal*1.10)+' ( +10% )';
   if($('daysDone')) $('daysDone').textContent = 'Giorni obiettivo completato: '+state.completions.length;
+  if($('autoDiffNote')) $('autoDiffNote').textContent = state.autoDiff ? 'Difficoltà automatica attiva: il livello cambia usando le ultime 20 risposte e la serie corretta.' : 'Difficoltà manuale: scegli il livello preferito dalle pillole in alto.';
+  renderRecentHistory();
 }
 
 function makeQuestion(){
@@ -997,7 +1113,7 @@ function confirmAnswer(){
   if(ok){ state.correct++; state.streak++; $('feedback').innerHTML = "<div class='ok'><b>Corretto!</b> Ben fatto.</div>"; maybeCompleteGoal(); setTimeout(function(){ autoAdjustDifficulty(); }, 0); if(state.autoAdvance){ setTimeout(function(){ renderQuestion(); }, 900); } }
   else { state.streak=0; $('feedback').innerHTML = "<div class='bad'><b>Non è corretto.</b> Proviamo insieme.<br><br><b>Soluzione attesa:</b> "+state.question.solution+(state.question.meta?("<br><br><b>Richiesta:</b> "+state.question.meta):"")+"</div>"; setTimeout(function(){ autoAdjustDifficulty(); }, 0); }
 
-  state.history.push({ topic: state.question.topic, type: state.question.type, stem: state.question.stem, meta: state.question.meta, given: rawInput, answer: state.question.answer, ok: ok, ts: Date.now() });
+  state.history.push({ topic: state.question.topic, type: state.question.type, stem: state.question.stem, meta: state.question.meta, given: rawInput, answer: state.question.answer, ok: ok, ts: Date.now(), difficulty: state.difficulty });
 
   state.answeredThis=true;
   if($('btnConfirm')) $('btnConfirm').disabled=true;
@@ -1049,7 +1165,7 @@ function setupKeyboardListener(){
 $('btnHome').onclick=function(){ show('home'); };
 $('btnPlay').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
 $('btnTrain').onclick=function(){ show('train'); renderStats(); };
-$('btnProg').onclick=function(){ show('progress'); renderStats(); renderByTopic(); renderBadgesList(); };
+$('btnProg').onclick=function(){ show('progress'); renderStats(); renderByTopic(); renderBadgesList(); renderRecentHistory(); };
 $('btnSettings').onclick=function(){ show('settings'); renderStats(); };
 $('startQuick').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
 $('startTrain').onclick=function(){ show('train'); };
@@ -1060,8 +1176,8 @@ $('btnNext').onclick=function(){ if(!state.answeredThis){ $('feedback').innerHTM
 $('btnHint').onclick=toggleHint;
 $('btnSimilar').onclick=similar;
 $('btnExport').onclick=function(){
-  var rows = [['timestamp','day','topic','stem','meta','given','answer','ok']];
-  state.history.forEach(function(h){ rows.push([new Date(h.ts).toISOString(), dayKey(h.ts), h.topic, h.stem, h.meta||'', h.given, h.answer, h.ok]); });
+  var rows = [['timestamp','day','topic','stem','meta','given','answer','ok','difficulty']];
+  state.history.forEach(function(h){ rows.push([new Date(h.ts).toISOString(), dayKey(h.ts), h.topic, h.stem, h.meta||'', h.given, h.answer, h.ok, h.difficulty||'']); });
   var csv = rows.map(function(r){ return r.map(function(x){ return '"'+String(x).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
   var blob = new Blob([csv], {type:'text/csv'});
   var url = URL.createObjectURL(blob);
