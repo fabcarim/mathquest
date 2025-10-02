@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 2ª media (v20.04)</title>
+<title>MathQuest Lite Plus · 2ª media (v20.06)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -78,7 +78,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 2ª media (v20.04)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v20.06)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -196,6 +196,7 @@
           <div class="kicker" id="recentMeta" style="margin-top:4px">Ancora nessun esercizio registrato.</div>
           <div id="recentList" style="margin-top:8px;overflow-x:auto"></div>
         </div>
+        <div class="kicker" style="margin-top:12px">Novità v20.06: focus su numeri razionali, proporzioni e percentuali, radice quadrata, geometria piana, figure piane e statistica di base.</div>
         <div style="margin-top:10px" id="byTopic"></div>
         <div style="margin-top:10px" id="suggestions" class="kicker"></div>
         <div class="kicker" id="autoDiffNote" style="margin-top:10px"></div>
@@ -248,20 +249,41 @@ function approxEqual(a,b,eps){ if(eps===undefined) eps=1e-6; return Math.abs(Num
 function shuffle(arr){ return arr.map(function(v){return [Math.random(),v];}).sort(function(a,b){return a[0]-b[0];}).map(function(x){return x[1];}); }
 function fmtUnit(val,unit){ return String(val)+' '+unit; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function simplifyFraction(n,d){
+  if(d===0) return '0/1';
+  var sign = (n<0) !== (d<0) ? -1 : 1;
+  n = Math.abs(n);
+  d = Math.abs(d);
+  var g = gcd(n,d);
+  var num = n/g;
+  var den = d/g;
+  if(sign<0){ num = -num; }
+  return String(num)+'/'+String(den);
+}
+function mean(arr){
+  if(!arr || !arr.length) return 0;
+  return arr.reduce(function(sum,v){ return sum+v; },0)/arr.length;
+}
 
 var topicAccent = {
+  "Numeri razionali":"var(--accent2)",
   "Calcolo interi":"var(--accent2)",
   "Decimali":"var(--accent3)",
   "Frazioni":"var(--accent4)",
+  "Proporzioni e percentuali":"var(--accent5)",
   "Percentuali":"var(--accent5)",
   "Proporzioni":"var(--accent6)",
   "Equazioni":"#7c3aed",
+  "Geometria piana":"#059669",
   "Geometria":"#059669",
+  "Figure piane":"#0ea5e9",
   "Misure":"#0ea5e9",
   "Potenze":"#ef4444",
+  "Radice quadrata":"#8b5cf6",
   "Radici":"#8b5cf6",
   "Numero teoria":"#22c55e",
   "Problemi":"#f97316",
+  "Statistica di base":"#14b8a6",
   "Statistiche":"#14b8a6"
 };
 function applyAccentForTopic(t){
@@ -292,7 +314,37 @@ var state = {
   badges: [],
 };
 
-var topicsList = ["Calcolo interi","Decimali","Frazioni","Percentuali","Proporzioni","Equazioni","Geometria","Misure","Potenze","Radici","Numero teoria","Problemi","Statistiche"];
+var topicsList = [
+  "Numeri razionali",
+  "Proporzioni e percentuali",
+  "Radice quadrata",
+  "Geometria piana",
+  "Figure piane",
+  "Statistica di base",
+  "Equazioni",
+  "Problemi",
+  "Numero teoria",
+  "Potenze",
+  "Misure"
+];
+var focusTopics = [
+  "Numeri razionali",
+  "Proporzioni e percentuali",
+  "Radice quadrata",
+  "Geometria piana",
+  "Figure piane",
+  "Statistica di base"
+];
+var legacyTopicMap = {
+  "Calcolo interi":"Numeri razionali",
+  "Decimali":"Numeri razionali",
+  "Frazioni":"Numeri razionali",
+  "Percentuali":"Proporzioni e percentuali",
+  "Proporzioni":"Proporzioni e percentuali",
+  "Geometria":"Geometria piana",
+  "Radici":"Radice quadrata",
+  "Statistiche":"Statistica di base"
+};
 
 function dayKey(ts){
   if(ts===undefined) ts=Date.now();
@@ -514,47 +566,421 @@ function makeQ(topic, type, stem, meta, answer, choices, hints, solution){
 }
 
 var Builders = {
-  "Calcolo interi": function(D){
-    var op = randChoice(['+','-','×','÷']); var a,b,stem,meta='',ans,hints;
-    if(op==='+'){a=randInt(100*D,300*D);b=randInt(50*D,150*D);ans=a+b;stem='Calcola la somma'; meta='Rispondi con un numero intero. Operazione: '+a+' + '+b; hints=["Allinea i due numeri e somma colonna per colonna partendo dalle unità, ricordandoti di riportare le decine.","Controlla il risultato facendo una rapida sottrazione inversa: verifica che (risultato − secondo addendo) torni uguale al primo numero."];}
-    if(op==='-'){a=randInt(150*D,400*D);b=randInt(50*D,149*D); if(b>a){var t=a;a=b;b=t;} ans=a-b; stem='Calcola la differenza'; meta='Rispondi con un numero intero. Operazione: '+a+' − '+b; hints=["Scrivi l'operazione in colonna e sottrai cifra per cifra, prendendo in prestito quando serve.","Alla fine somma il risultato con il sottraendo per assicurarti di tornare al minuendo iniziale."];}
-    if(op==='×'){a=randInt(6,12*D);b=randInt(6,12*D);ans=a*b;stem='Calcola il prodotto'; meta='Rispondi con un numero intero. Operazione: '+a+' × '+b; hints=["Moltiplica il primo numero per ogni cifra dell'altro: parti dalle unità e aggiungi eventuali riporti.","Fai un controllo rapido stimando l'ordine di grandezza (es. 10×10 ≈ 100) per capire se il risultato ottenuto è plausibile."];}
-    if(op==='÷'){b=randInt(2,12*D);ans=randInt(6,12*D);a=ans*b;stem='Calcola il quoziente'; meta='Risposta intera. Operazione: '+a+' ÷ '+b; hints=["Pensa alla divisione come all'operazione inversa della moltiplicazione: trova il numero che moltiplicato per il divisore dà '+a+'.","Verifica il risultato moltiplicando quoziente e divisore: devi ritrovare esattamente il dividendo."];}
-    return makeQ('Calcolo interi','input',stem,meta,ans,null,hints,String(ans));
-  },
-  "Decimali": function(D){
-    var mode = randChoice(['somma','prodotto','arrotonda']); var a=dec(randInt(10,80)/10,1), b=dec(randInt(10,80)/10,1);
-    if(mode==='somma') return makeQ('Decimali','input','Somma con decimali','Arrotonda il risultato a 2 cifre decimali. Operazione: '+a+' + '+b,dec(a+b,2),null,['Allinea la virgola mettendo i numeri uno sotto l’altro e somma partendo dalle unità.','Dopo la somma controlla la terza cifra decimale: se è ≥5 aumenta di uno la seconda cifra, altrimenti lasciala invariata.'],dec(a+b,2).toFixed(2));
-    if(mode==='prodotto'){ var ans=dec(a*b,2); return makeQ('Decimali','input','Prodotto con decimali','Arrotonda il risultato a 2 cifre decimali. Operazione: '+a+' × '+b,ans,null,['Moltiplica ignorando la virgola e conta quante cifre decimali hanno i fattori.','Alla fine riporta la virgola tante posizioni quante le cifre contate e poi arrotonda alla seconda cifra decimale.'],ans.toFixed(2)); }
-    var target = randChoice([0,1,2]); return makeQ('Decimali','input','Arrotondamento','Arrotonda '+a+' esattamente a '+target+' cifre decimali.',dec(a,target),null,['Guarda la cifra successiva rispetto a quella che devi tenere: decide se arrotondare per eccesso o difetto.','Se la cifra successiva è 5 o più aggiungi 1 all’ultima cifra utile, altrimenti mantienila uguale e taglia il resto.'],dec(a,target).toFixed(target));
-  },
-  "Frazioni": function(D){
-    var a = randInt(1,9), b = randInt(2,9); var g0 = gcd(a,b); a = Math.floor(a/g0); b = Math.floor(b/g0); if(a===b){ b = b+1; }
-    var k = randInt(2,5); var aK = a*k, bK = b*k; var variant = randChoice(['askBase','askScaled']);
-    if(variant==='askBase'){
-      var correct = aK+'/'+bK;
-      var opts = [correct, a+'/'+bK, aK+'/'+b, (aK+1)+'/'+bK];
-      var stem='Frazioni equivalenti';
-      var meta='Scegli una frazione equivalente a '+a+'/'+b+' (diversa da '+a+'/'+b+').';
-      var hintsEq=['Confronta numeratore e denominatore con quelli iniziali: per ottenere una frazione equivalente moltiplica entrambi per lo stesso numero.','Ricava il fattore di moltiplicazione confrontando i denominatori e applicalo anche al numeratore per verificare quale opzione resta coerente.'];
-      return makeQ('Frazioni','mc',stem,meta,correct,sanitizeChoices(stem+' '+meta, opts, correct),hintsEq,correct);
-    } else {
-      var correct2 = a+'/'+b;
-      var opts2 = [correct2, aK+'/'+b, a+'/'+bK, aK+'/'+(bK+1)];
-      var stem2='Frazioni equivalenti';
-      var meta2='Scegli una frazione equivalente a '+aK+'/'+bK+' (diversa da '+aK+'/'+bK+').';
-      var hintsEq2=['Osserva se numeratore e denominatore hanno un divisore comune per tornare alla frazione semplificata.','Dividi entrambi i termini per lo stesso numero (spesso il MCD) e controlla quale opzione restituisce la stessa frazione ridotta.'];
-      return makeQ('Frazioni','mc',stem2,meta2,correct2,sanitizeChoices(stem2+' '+meta2, opts2, correct2),hintsEq2, correct2);
+  "Numeri razionali": function(D){
+    var branch = randChoice(['interi','decimali','mix','frazione']);
+    if(branch==='interi'){
+      var op = randChoice(['+','-','×','÷']);
+      var a,b,ans,stem,meta,hints;
+      if(op==='+'){
+        a=randInt(80*D,220*D);
+        b=randInt(40*D,160*D);
+        ans=a+b;
+        stem='Somma di numeri razionali interi';
+        meta='Calcola: '+a+' + '+b+'. Rispondi con un numero intero.';
+        hints=[
+          'Allinea le unità come in una somma in colonna e somma cifra per cifra.',
+          'Verifica con un controllo veloce: sottrai il secondo addendo dal risultato per ritrovare il primo numero.'
+        ];
+      }
+      if(op==='-'){
+        a=randInt(120*D,360*D);
+        b=randInt(40*D,140*D);
+        if(b>a){ var swap=a; a=b; b=swap; }
+        ans=a-b;
+        stem='Differenza tra numeri razionali interi';
+        meta='Calcola: '+a+' − '+b+'. Rispondi con un numero intero.';
+        hints=[
+          'Scrivi l’operazione in colonna e ricorda di prendere in prestito quando la cifra sopra è più piccola di quella sotto.',
+          'Controlla sommando il risultato con il sottraendo: devi ritornare al minuendo.'
+        ];
+      }
+      if(op==='×'){
+        a=randInt(5*D,12*D);
+        b=randInt(6*D,14*D);
+        ans=a*b;
+        stem='Prodotto tra numeri interi';
+        meta='Calcola: '+a+' × '+b+'. Rispondi con un numero intero.';
+        hints=[
+          'Moltiplica partendo dalle unità e aggiungi gli eventuali riporti.',
+          'Stima l’ordine di grandezza (es. 10×10 ≈ 100) per capire se il risultato è plausibile.'
+        ];
+      }
+      if(op==='÷'){
+        b=randInt(2,10*D);
+        ans=randInt(5*D,12*D);
+        a=ans*b;
+        stem='Quoziente tra numeri razionali interi';
+        meta='Calcola: '+a+' ÷ '+b+'. Rispondi con un numero intero.';
+        hints=[
+          'Ripensa alla moltiplicazione inversa: trova il numero che moltiplicato per '+b+' restituisce '+a+'.',
+          'Controlla il risultato moltiplicando quoziente e divisore: devi rivedere il dividendo.'
+        ];
+      }
+      return makeQ('Numeri razionali','input',stem,meta,ans,null,hints,String(ans));
     }
+    if(branch==='decimali'){
+      var mode = randChoice(['somma','prodotto','arrotonda']);
+      var aDec = dec(randInt(10,80)/10,1);
+      var bDec = dec(randInt(10,80)/10,1);
+      if(mode==='somma'){
+        var sum = dec(aDec+bDec,2);
+        return makeQ('Numeri razionali','input','Somma di numeri decimali','Esegui '+aDec+' + '+bDec+' e scrivi il risultato con 2 cifre decimali.',sum,null,[
+          'Allinea le virgole e somma cifra per cifra partendo dalle unità.',
+          'Guarda la terza cifra decimale per decidere come arrotondare alla seconda.'
+        ],sum.toFixed(2));
+      }
+      if(mode==='prodotto'){
+        var prod = dec(aDec*bDec,2);
+        return makeQ('Numeri razionali','input','Prodotto di numeri decimali','Calcola '+aDec+' × '+bDec+' e scrivi il risultato con 2 cifre decimali.',prod,null,[
+          'Moltiplica ignorando la virgola e conta quante cifre decimali hanno i fattori.',
+          'Riporta la virgola nel risultato tante posizioni quante le cifre contate e poi arrotonda alla seconda cifra.'
+        ],prod.toFixed(2));
+      }
+      var target = randChoice([0,1,2]);
+      var rounded = dec(aDec,target);
+      return makeQ('Numeri razionali','input','Arrotondamento di numero razionale','Arrotonda '+aDec+' a '+target+' cifre decimali.',rounded,null,[
+        'Osserva la cifra successiva rispetto a quella da conservare: se è ≥5 arrotonda per eccesso.',
+        'Taglia il resto delle cifre dopo aver deciso se aumentare o meno l’ultima cifra utile.'
+      ],rounded.toFixed(target));
+    }
+    if(branch==='mix'){
+      var intero = randInt(6*D,20*D);
+      var decimale = dec(randInt(5,90)/10,1);
+      var modeMix = randChoice(['add','sub']);
+      if(modeMix==='add'){
+        var resAdd = dec(intero + decimale,2);
+        return makeQ('Numeri razionali','input','Somma mista','Calcola '+intero+' + '+decimale+' e scrivi il risultato in forma decimale con 2 cifre.',resAdd,null,[
+          'Trasforma l’intero aggiungendo la virgola (es. 12 = 12,0) e somma le parti decimali.',
+          'Controlla di riportare eventuali decimi in eccesso e arrotonda a due cifre.'
+        ],resAdd.toFixed(2));
+      }
+      while(decimale >= intero){ decimale = dec(randInt(5,90)/10,1); }
+      var resSub = dec(intero - decimale,2);
+      return makeQ('Numeri razionali','input','Differenza mista','Calcola '+intero+' − '+decimale+' e scrivi il risultato in forma decimale con 2 cifre.',resSub,null,[
+        'Allinea la virgola scrivendo l’intero come numero con decimali (es. '+intero+' = '+intero+',0).',
+        'Ricorda di prendere in prestito 1 unità se la parte decimale da sottrarre è più grande.'
+      ],resSub.toFixed(2));
+    }
+    var fracMode = randChoice(['frac2dec','dec2frac']);
+    if(fracMode==='frac2dec'){
+      var pairs = [[1,2],[3,4],[2,5],[3,5],[5,8],[7,10],[9,12],[11,16]];
+      var chosen = randChoice(pairs);
+      var value = dec(chosen[0]/chosen[1],2);
+      return makeQ('Numeri razionali','input','Frazione in numero decimale','Scrivi '+chosen[0]+'/'+chosen[1]+' come numero decimale con 2 cifre.',value,null,[
+        'Esegui la divisione tra numeratore e denominatore per ottenere il decimale.',
+        'Se il risultato ha più di due cifre decimali, usa la terza cifra per arrotondare la seconda.'
+      ],value.toFixed(2));
+    }
+    var decimalsList = [0.2,0.25,0.4,0.6,0.75,0.8,1.2,1.5,0.45];
+    var val = randChoice(decimalsList);
+    var strVal = String(val);
+    var decimals = strVal.indexOf('.')>=0 ? strVal.split('.')[1].length : 0;
+    var denominator = Math.pow(10, decimals);
+    var numerator = Math.round(val * denominator);
+    var correct = simplifyFraction(numerator, denominator);
+    var alt1 = simplifyFraction(numerator+1, denominator);
+    var alt2 = simplifyFraction(Math.max(1,numerator-1), denominator);
+    var alt3 = simplifyFraction(numerator, denominator+2);
+    return makeQ('Numeri razionali','mc','Numero decimale in frazione','Qual è la frazione in termini minimi che rappresenta '+val+'?',correct,
+      sanitizeChoices('Numero decimale in frazione '+val, [correct,alt1,alt2,alt3], correct),[
+        'Conta le cifre decimali e scrivi il numero come frazione con denominatore 10, 100, ecc.',
+        'Semplifica la frazione dividendo numeratore e denominatore per il loro MCD.'
+      ],correct);
   },
-  "Percentuali": function(D){
-    var mode=randChoice(['percOf','fracToPerc','percToFrac']);
-    if(mode==='percOf'){ var p=randChoice([10,12.5,20,25,30,40,50]); var x=randInt(16*D,80*D); var a=dec(x*p/100,2); return makeQ('Percentuali','input','Percentuale di una quantità','Calcola il '+p+'% di '+x+'. Arrotonda a 2 decimali se serve.',a,null,['Trasforma la percentuale in numero decimale dividendo per 100 e moltiplicala per la quantità indicata.','Annota il prodotto e arrotonda alla seconda cifra decimale controllando la terza cifra.'],String(a)); }
-    if(mode==='fracToPerc'){ var d=randChoice([2,4,5,8,10]); var n=randInt(1,d-1); var a2=dec(100*n/d,2)+'%'; var ch=[a2, dec(n/d,2).toString(), String(n*d)+'%', String(d)+'/'+String(n)+'%']; var stem='Da frazione a percentuale'; var meta='Converti '+n+'/'+d+' in percentuale (es. 12,5%).'; return makeQ('Percentuali','mc',stem,meta,a2,sanitizeChoices(stem+' '+meta, ch, a2),['Dividi il numeratore per il denominatore per ottenere un decimale e poi moltiplica per 100.','Aggiungi il simbolo % e, se necessario, scrivi il risultato con una virgola come negli esempi (es. 12,5%).'], a2); }
-    var mp={"12.5":[1,8],"20":[1,5],"25":[1,4],"37.5":[3,8],"50":[1,2],"62.5":[5,8],"75":[3,4]}; var keys=Object.keys(mp); var pk=randChoice(keys); var nn=mp[pk][0], dd=mp[pk][1]; var stem2='Percentuale come frazione'; var meta2='Scrivi '+pk+'% come frazione in termini minimi.'; var corr=nn+'/'+dd; return makeQ('Percentuali','mc',stem2,meta2,corr,sanitizeChoices(stem2+' '+meta2,[corr,'1/3','2/5','5/12'],corr),['Scrivi la percentuale come frazione con denominatore 100 e semplificala.','Dividi numeratore e denominatore per il loro MCD per arrivare alla forma ridotta.'], corr);
+  "Proporzioni e percentuali": function(D){
+    var mode=randChoice(['percOf','fracToPerc','percToFrac','proporzione','percentChange','rapporto']);
+    if(mode==='percOf'){
+      var p=randChoice([10,12.5,15,20,25,30,40,50]);
+      var x=randInt(18*D,90*D);
+      var result=dec(x*p/100,2);
+      return makeQ('Proporzioni e percentuali','input','Percentuale di una quantità','Calcola il '+p+'% di '+x+'. Scrivi il numero con 2 cifre decimali se serve.',result,null,[
+        'Trasforma la percentuale in numero dividendo per 100.',
+        'Moltiplica la quantità per il valore decimale ottenuto e arrotonda alla seconda cifra.'
+      ],result.toFixed(2));
+    }
+    if(mode==='fracToPerc'){
+      var d=randChoice([2,4,5,8,10,16]);
+      var n=randInt(1,d-1);
+      var perc=dec(100*n/d,2)+'%';
+      var options=[perc, dec(n/d,2).toString(), (n*d)+'%', (d)+'/'+n+'%'];
+      return makeQ('Proporzioni e percentuali','mc','Da frazione a percentuale','Converti '+n+'/'+d+' in percentuale (es. 12,5%).',perc,
+        sanitizeChoices('Da frazione a percentuale '+n+'/'+d, options, perc),[
+          'Esegui la divisione numeratore ÷ denominatore per ottenere un decimale.',
+          'Moltiplica per 100 e aggiungi il simbolo %.'
+        ],perc);
+    }
+    if(mode==='percToFrac'){
+      var mp={"12.5":[1,8],"20":[1,5],"25":[1,4],"37.5":[3,8],"50":[1,2],"62.5":[5,8],"75":[3,4],"80":[4,5]};
+      var pk=randChoice(Object.keys(mp));
+      var nn=mp[pk][0], dd=mp[pk][1];
+      var corr=nn+'/'+dd;
+      return makeQ('Proporzioni e percentuali','mc','Percentuale in frazione','Scrivi '+pk+'% come frazione in termini minimi.',corr,
+        sanitizeChoices('Percentuale in frazione '+pk, [corr,'1/3','2/5','5/12'], corr),[
+          'Scrivi la percentuale come frazione con denominatore 100.',
+          'Semplifica dividendo numeratore e denominatore per il loro MCD.'
+        ],corr);
+    }
+    if(mode==='proporzione'){
+      var a=randInt(2*D,12*D);
+      var b=randInt(2*D,12*D);
+      var c=randInt(2*D,12*D);
+      var x=Math.round((b*c)/a);
+      return makeQ('Proporzioni e percentuali','input','Completa la proporzione',a+' : '+b+' = '+c+' : x. Trova x (intero).',x,null,[
+        'Scrivi la proporzione come frazione e usa il prodotto incrociato: a·x = b·c.',
+        'Calcola b·c e dividi il risultato per a per ottenere x.'
+      ],String(x));
+    }
+    if(mode==='percentChange'){
+      var base=randInt(40,120);
+      var change=randChoice([10,12,15,18,20,25,30]);
+      var direction=randChoice(['increase','decrease']);
+      var final;
+      var meta;
+      if(direction==='increase'){
+        final=dec(base*(1+change/100),2);
+        meta='Un valore di '+base+' aumenta del '+change+'%. Quanto vale dopo l\'aumento? (2 cifre decimali)';
+      } else {
+        final=dec(base*(1-change/100),2);
+        meta='Un valore di '+base+' diminuisce del '+change+'%. Quanto vale dopo la diminuzione? (2 cifre decimali)';
+      }
+      return makeQ('Proporzioni e percentuali','input','Variazione percentuale',meta,final,null,[
+        'Calcola la variazione percentuale trasformando il '+change+'% in numero decimale.',
+        'Moltiplica il valore iniziale per (1 ± percentuale) e arrotonda alla seconda cifra decimale.'
+      ],final.toFixed(2));
+    }
+    var aRat=randInt(6*D,20*D);
+    var bRat=randInt(6*D,20*D);
+    var g=gcd(aRat,bRat);
+    var simplified=(aRat/g)+':'+(bRat/g);
+    var opts=[simplified, aRat+':'+bRat, (aRat/g)+':'+(bRat/g+1), (aRat/g+1)+':'+(bRat/g)];
+    return makeQ('Proporzioni e percentuali','mc','Rapporto semplificato','Riduci il rapporto '+aRat+':'+bRat+' in termini minimi.',simplified,
+      sanitizeChoices('Rapporto semplificato '+aRat+':'+bRat, opts, simplified),[
+        'Dividi entrambi i termini del rapporto per il loro MCD.',
+        'Controlla che dopo la semplificazione i due numeri non abbiano più divisori comuni.'
+      ],simplified);
   },
-  "Proporzioni": function(D){
-    var a=randInt(2*D,12*D), b=randInt(2*D,12*D), c=randInt(2*D,12*D); var x=Math.round((b*c)/a); return makeQ('Proporzioni','input','Completa la proporzione',a+' : '+b+' = '+c+' : x — Trova x (intero).',x,null,["Scrivi la proporzione come frazione e usa il prodotto incrociato: a · x = b · c.","Calcola b·c e poi dividi il risultato per a per ottenere il valore di x."],String(x));
+  "Radice quadrata": function(D){
+    var mode=randChoice(['calc','missing','compare','identify']);
+    if(mode==='calc'){
+      var squares=[4,9,16,25,36,49,64,81,100,121,144,169,196,225,256,289,324];
+      var sq=randChoice(squares.slice(0,Math.min(squares.length,6+4*D)));
+      var root=Math.sqrt(sq);
+      return makeQ('Radice quadrata','input','Radice quadrata esatta','Calcola √'+sq+'. Rispondi con un numero intero.',root,null,[
+        'Pensa al numero che moltiplicato per se stesso dà '+sq+'.',
+        'Ripassa i quadrati perfetti: 6²=36, 7²=49, 8²=64…'
+      ],String(root));
+    }
+    if(mode==='missing'){
+      var base=randInt(3,18);
+      var radicand=base*base;
+      return makeQ('Radice quadrata','input','Radicando mancante','Completa: √? = '+base+'. Inserisci il numero sotto radice.',radicand,null,[
+        'Ricorda che (√x)² = x.',
+        'Moltiplica '+base+' per se stesso per ottenere il radicando.'
+      ],String(radicand));
+    }
+    if(mode==='compare'){
+      var roots=[9,16,25,36,49,64,81,100,121,144];
+      var options=shuffle(roots.slice(0,4));
+      var biggest=options.reduce(function(max,v){ return Math.sqrt(v) > Math.sqrt(max) ? v : max; }, options[0]);
+      var correct='√'+biggest;
+      var displayChoices=options.map(function(v){ return '√'+v; });
+      return makeQ('Radice quadrata','mc','Confronto di radici','Quale radice quadrata ha valore maggiore?',correct,
+        sanitizeChoices('Confronto radici', displayChoices, correct),[
+          'Per confrontare radici quadrate positive basta confrontare i radicandi.',
+          'Scegli il radicando più grande: la sua radice è la più grande.'
+        ],correct);
+    }
+    var perfect=randChoice([4,9,16,25,36,49,64,81,100,121,144]);
+    var nonSquares=[];
+    while(nonSquares.length<3){
+      var candidate=randInt(10,200);
+      if([4,9,16,25,36,49,64,81,100,121,144].indexOf(candidate)===-1 && nonSquares.indexOf(candidate)===-1){
+        nonSquares.push(candidate);
+      }
+    }
+    var options2=sanitizeChoices('Quadrati perfetti', [String(perfect)].concat(nonSquares.map(String)), String(perfect));
+    return makeQ('Radice quadrata','mc','Quadrati perfetti','Quale di questi numeri è un quadrato perfetto?',String(perfect),options2,[
+      'Un quadrato perfetto è il quadrato di un numero intero.',
+      'Trova la radice dei numeri proposti: solo quello che produce un intero è corretto.'
+    ],String(perfect));
+  },
+  "Geometria piana": function(D){
+    var shape=randChoice(['rettangolo','triangolo','trapezio','quadrato','poligono']);
+    if(shape==='rettangolo'){
+      var B=randInt(5*D,20*D);
+      var H=randInt(5*D,20*D);
+      return makeQ('Geometria piana','input','Area del rettangolo','Base '+fmtUnit(B,'cm')+', altezza '+fmtUnit(H,'cm')+'. Rispondi in cm² (intero).',B*H,null,[
+        'Applica la formula A = base × altezza.',
+        'Moltiplica i due valori e indica l’unità cm².'
+      ],String(B*H));
+    }
+    if(shape==='triangolo'){
+      var B2=randInt(6*D,20*D);
+      var H2=randInt(4*D,18*D);
+      var areaTri=dec((B2*H2)/2,1);
+      return makeQ('Geometria piana','input','Area del triangolo','Base '+fmtUnit(B2,'cm')+', altezza '+fmtUnit(H2,'cm')+'. Usa A=(b·h)/2 e arrotonda a 1 decimale se serve.',areaTri,null,[
+        'Calcola base × altezza come se fosse un rettangolo.',
+        'Dividi il prodotto per 2 e arrotonda alla prima cifra decimale se necessario.'
+      ],areaTri.toFixed(1));
+    }
+    if(shape==='trapezio'){
+      var Bm=randInt(10*D,24*D);
+      var bm=randInt(4*D,Math.max(5*D, Bm-4));
+      var h=randInt(4*D,15*D);
+      var areaTr=dec(((Bm+bm)*h)/2,1);
+      return makeQ('Geometria piana','input','Area del trapezio','Basi '+fmtUnit(Bm,'cm')+' e '+fmtUnit(bm,'cm')+', altezza '+fmtUnit(h,'cm')+'. Arrotonda a 1 decimale.',areaTr,null,[
+        'Somma le due basi del trapezio.',
+        'Moltiplica per l’altezza, poi dividi il risultato per 2.'
+      ],areaTr.toFixed(1));
+    }
+    if(shape==='quadrato'){
+      if(Math.random()<0.5){
+        var L=randInt(4*D,20*D);
+        return makeQ('Geometria piana','input','Area del quadrato','Lato '+fmtUnit(L,'cm')+'. Calcola l’area in cm².',L*L,null,[
+          'Per il quadrato usa A = lato × lato.',
+          'Ricorda di esprimere il risultato in centimetri quadrati.'
+        ],String(L*L));
+      }
+      var side=randInt(4*D,12*D);
+      var area=side*side;
+      return makeQ('Geometria piana','input','Lato da area','Un quadrato ha area '+area+' cm². Quanto misura il lato?',side,null,[
+        'Per trovare il lato fai la radice quadrata dell’area.',
+        'Pensa al numero che moltiplicato per se stesso dà '+area+'.'
+      ],String(side));
+    }
+    var sides=randChoice([5,6,8]);
+    var lato=randInt(3*D,9*D);
+    var apotema=dec(randInt(5*D,12*D)/2,1);
+    var perimetro=sides*lato;
+    var areaPol=dec((perimetro*apotema)/2,1);
+    return makeQ('Geometria piana','input','Area di poligono regolare','Poligono regolare con '+sides+' lati da '+fmtUnit(lato,'cm')+' e apotema '+fmtUnit(apotema,'cm')+'. Arrotonda a 1 decimale.',areaPol,null,[
+      'Ricorda la formula A = (perimetro × apotema) / 2.',
+      'Calcola prima il perimetro moltiplicando lato × numero di lati, poi applica la formula.'
+    ],areaPol.toFixed(1));
+  },
+  "Figure piane": function(D){
+    var mode=randChoice(['descrizione','triangolo','diagonali','angoli']);
+    if(mode==='descrizione'){
+      var shapes=[
+        {desc:'Ha quattro lati uguali e angoli retti.',ans:'Quadrato'},
+        {desc:'Ha solo un paio di lati paralleli.',ans:'Trapezio'},
+        {desc:'Ha quattro lati uguali ma gli angoli non sono retti.',ans:'Rombo'},
+        {desc:'Ha lati opposti paralleli e tutti gli angoli retti.',ans:'Rettangolo'}
+      ];
+      var pick=randChoice(shapes);
+      var choices=['Quadrato','Rettangolo','Rombo','Trapezio'];
+      return makeQ('Figure piane','mc','Classificazione di figure','Quale figura descrive: '+pick.desc, pick.ans,
+        sanitizeChoices('Classificazione figure', choices, pick.ans),[
+          'Ripensa alle caratteristiche delle figure piane note (paralleli, lati uguali, angoli retti).',
+          'Confronta la descrizione con quadrato, rettangolo, rombo e trapezio.'
+        ],pick.ans);
+    }
+    if(mode==='triangolo'){
+      var tri=randChoice([
+        {q:'Come si chiama un triangolo con due lati uguali?',ans:'Isoscele'},
+        {q:'Come si chiama un triangolo con tutti i lati uguali?',ans:'Equilatero'},
+        {q:'Come si chiama un triangolo con un angolo di 90°?',ans:'Rettangolo'}
+      ]);
+      return makeQ('Figure piane','mc','Classificazione dei triangoli',tri.q,tri.ans,
+        sanitizeChoices('Classificazione triangoli', ['Isoscele','Equilatero','Scaleno','Rettangolo'], tri.ans),[
+          'Ricorda le definizioni: isoscele (due lati uguali), equilatero (tre lati uguali), rettangolo (un angolo retto).',
+          'Associa la descrizione al nome corrispondente.'
+        ],tri.ans);
+    }
+    if(mode==='diagonali'){
+      var n=randChoice([5,6,7,8]);
+      var diagonali=(n*(n-3))/2;
+      return makeQ('Figure piane','input','Diagonali di un poligono','Quante diagonali ha un poligono regolare con '+n+' lati?',diagonali,null,[
+        'Usa la formula d = n · (n − 3) / 2.',
+        'Sostituisci n con '+n+' e completa i calcoli step by step.'
+      ],String(diagonali));
+    }
+    var lati=randChoice([4,5,6,8]);
+    var somma=(lati-2)*180;
+    return makeQ('Figure piane','input','Somma degli angoli interni','Qual è la somma degli angoli interni di un poligono con '+lati+' lati? (in gradi)',somma,null,[
+      'La somma degli angoli interni vale (n − 2) × 180°.',
+      'Sostituisci n con '+lati+' e moltiplica.'
+    ],String(somma));
+  },
+  "Statistica di base": function(D){
+    var fruits=['blu','rosso','verde','giallo'];
+    var counts=fruits.map(function(){ return randInt(4*D,12*D); });
+    var listing=fruits.map(function(f,j){ return f+'='+counts[j]; }).join(', ');
+    var total=counts.reduce(function(sum,v){ return sum+v; },0);
+    var mode=randChoice(['tabella','massimo','somma','differenza','vero-falso','media','percentuale','grafico']);
+    if(mode==='tabella'){
+      var i=randInt(0,3);
+      var corr=String(counts[i]);
+      return makeQ('Statistica di base','mc','Lettura di tabella','Tabella: '+listing+'. Quante unità della categoria '+fruits[i]+'?',corr,
+        sanitizeChoices('Lettura tabella '+listing, [corr,String(counts[i]+1),String(Math.max(0,counts[i]-1)),String(counts[(i+1)%4])], corr),[
+          'Cerca nella tabella la categoria richiesta e leggi il numero corrispondente.',
+          'Riporta esattamente il valore indicato senza confonderti con le altre righe.'
+        ],corr);
+    }
+    if(mode==='massimo'){
+      var maxV=Math.max.apply(null, counts);
+      var correct=fruits[counts.indexOf(maxV)];
+      return makeQ('Statistica di base','mc','Valore massimo nel grafico','Tabella: '+listing+'. Quale categoria sarebbe la barra più alta?',correct,
+        sanitizeChoices('Massimo tabella '+listing, fruits.slice(), correct),[
+          'Confronta tutti i numeri della tabella e individua il più grande.',
+          'Associa il valore massimo alla categoria corrispondente.'
+        ],correct);
+    }
+    if(mode==='somma'){
+      var i2=randInt(0,3);
+      var j2=randInt(0,3);
+      while(j2===i2){ j2=randInt(0,3); }
+      var ans=counts[i2]+counts[j2];
+      return makeQ('Statistica di base','input','Somma di categorie','Tabella: '+listing+'. Quante unità in totale tra '+fruits[i2]+' e '+fruits[j2]+'?',ans,null,[
+        'Individua le due categorie nella tabella.',
+        'Somma i valori trovati per ottenere il totale.'
+      ],String(ans));
+    }
+    if(mode==='differenza'){
+      var i3=randInt(0,3);
+      var j3=randInt(0,3);
+      while(j3===i3){ j3=randInt(0,3); }
+      var diff=Math.abs(counts[i3]-counts[j3]);
+      return makeQ('Statistica di base','input','Differenza tra categorie','Tabella: '+listing+'. Qual è la differenza assoluta tra '+fruits[i3]+' e '+fruits[j3]+'?',diff,null,[
+        'Sottrai il valore più piccolo da quello più grande.',
+        'Ricorda che la differenza assoluta è sempre positiva.'
+      ],String(diff));
+    }
+    if(mode==='vero-falso'){
+      var i4=randInt(0,3);
+      var j4=randInt(0,3);
+      while(j4===i4){ j4=randInt(0,3); }
+      var isTrue=counts[i4] > counts[j4];
+      var answer=isTrue ? 'Vero' : 'Falso';
+      return makeQ('Statistica di base','mc','Vero o falso sui dati','Tabella: '+listing+'. Vero o Falso: la categoria '+fruits[i4]+' supera '+fruits[j4]+'.',answer,
+        sanitizeChoices('Vero falso statistica', ['Vero','Falso'], answer),[
+          'Confronta direttamente i valori delle due categorie.',
+          'Se il primo numero è maggiore la frase è vera, altrimenti è falsa.'
+        ],answer);
+    }
+    if(mode==='media'){
+      var sample=[randInt(12,18),randInt(14,22),randInt(10,20),randInt(8,16)];
+      var avg=dec(mean(sample),1);
+      return makeQ('Statistica di base','input','Media aritmetica','I voti di quattro verifiche sono '+sample.join(', ')+'. Qual è la media aritmetica? (1 cifra decimale)',avg,null,[
+        'Somma tutti i valori raccolti.',
+        'Dividi il totale per il numero di valori (4) e arrotonda alla prima cifra decimale.'
+      ],avg.toFixed(1));
+    }
+    if(mode==='percentuale'){
+      var idx=randInt(0,3);
+      var perc=dec(100*counts[idx]/total,1);
+      return makeQ('Statistica di base','input','Percentuale su diagramma','Tabella: '+listing+'. Che percentuale del totale rappresenta '+fruits[idx]+'? (scrivi solo il numero con 1 decimale)',perc,null,[
+        'Calcola il totale dei dati e dividi il valore della categoria per il totale.',
+        'Moltiplica per 100 e arrotonda alla prima cifra decimale. Non scrivere il simbolo %.'
+      ],perc.toFixed(1));
+    }
+    var minV=Math.min.apply(null, counts);
+    var minCat=fruits[counts.indexOf(minV)];
+    return makeQ('Statistica di base','mc','Barra più bassa','Nel grafico a barre dei dati ('+listing+') quale categoria avrebbe la barra più bassa?',minCat,
+      sanitizeChoices('Barra più bassa '+listing, fruits.slice(), minCat),[
+        'La barra più bassa corrisponde al valore più piccolo nella tabella.',
+        'Individua il numero minimo e associa la categoria.'
+      ],minCat);
   },
   "Equazioni": function(D){
     var a=randInt(2,7), x=randInt(2*D,15*D), b=randInt(-10,10); var c=a*x+b; return makeQ('Equazioni','input',"Risolvi l'equazione di 1º grado", a+'x '+(b>=0?'+':'-')+' '+Math.abs(b)+' = '+c+'. Trova x (intero).', x, null, ["Porta il termine noto dall'altra parte cambiando segno (c − b).","Dividi il risultato per il coefficiente di x (a) per isolarla."], 'x='+x);
@@ -686,56 +1112,6 @@ var Builders = {
       ], String(answerTen));
     }
   },
-  "Radici": function(D){
-    var roots = []; for(var i=2;i<=20;i++){ roots.push(i*i); }
-    var mode = randChoice(['value','missing','compare','identify']);
-    if(mode==='value'){
-      var sq = randChoice(roots);
-      var root = Math.round(Math.sqrt(sq));
-      var stemR = randChoice(['Calcola la radice quadrata','Radice quadrata di un quadrato perfetto','Valuta la radice quadrata']);
-      var metaR = randChoice([
-        'Quanto vale √'+sq+'? Rispondi con un intero.',
-        'Trova il numero che elevato al quadrato dà '+sq+'.',
-        'Calcola √'+sq+' sapendo che si tratta di un quadrato perfetto.'
-      ]);
-      return makeQ('Radici','input',stemR,metaR, root, null, [
-        'Cerca il numero che moltiplicato per se stesso restituisce '+sq+'.',
-        'Ricorda i quadrati perfetti: 6^2=36, 7^2=49, 8^2=64… confrontali con il valore dato.'
-      ], String(root));
-    }
-    if(mode==='missing'){
-      var base = randInt(3,18);
-      var radicand = base*base;
-      return makeQ('Radici','input','Trova il radicando','Completa: √? = '+base+'. Fornisci il numero sotto radice.', radicand, null, [
-        'Eleva '+base+' al quadrato (moltiplicalo per se stesso) per trovare il radicando.',
-        'Ricorda che (√x)^2 = x: quindi se √x = '+base+', allora x = '+base+'^2.'
-      ], String(radicand));
-    }
-    if(mode==='compare'){
-      var shuffled = shuffle(roots.slice());
-      var options = shuffled.slice(0,4);
-      var biggest = options.reduce(function(max,v){ return Math.sqrt(v) > Math.sqrt(max) ? v : max; }, options[0]);
-      var correct = '√'+biggest;
-      var displayChoices = options.map(function(v){ return '√'+v; });
-      return makeQ('Radici','mc','Confronto di radici','Quale radice quadrata ha il valore più grande?', correct, sanitizeChoices('Confronto di radici', displayChoices, correct), [
-        'Per confrontare radici quadrate positive è sufficiente confrontare i numeri sotto radice.',
-        'Individua il radicando più grande: la sua radice quadrata sarà quella con valore maggiore.'
-      ], correct);
-    }
-    if(mode==='identify'){
-      var perfect = randChoice(roots);
-      var nonSquares = [];
-      while(nonSquares.length<3){
-        var candidate = randInt(10,400);
-        if(roots.indexOf(candidate)===-1 && nonSquares.indexOf(candidate)===-1){ nonSquares.push(candidate); }
-      }
-      var options2 = sanitizeChoices('Quadrati perfetti', [String(perfect)].concat(nonSquares.map(String)), String(perfect));
-      return makeQ('Radici','mc','Quadrati perfetti','Quale di questi numeri è un quadrato perfetto?', String(perfect), options2, [
-        'Un quadrato perfetto è il quadrato di un numero intero (es. 12^2 = 144).',
-        'Prova a estrarre la radice dei numeri proposti: solo quello che produce un intero è un quadrato perfetto.'
-      ], String(perfect));
-    }
-  },
   "Numero teoria": function(D){ var a=randInt(6*D,20*D), b=randInt(6*D,20*D); var mode=randChoice(['MCD','mcm']); if(mode==='MCD'){ var ans=gcd(a,b); return makeQ('Numero teoria','input','Massimo Comune Divisore','Trova MCD('+a+', '+b+'). Rispondi con un intero.', ans, null, ["Dividi il numero maggiore per il minore e prendi il resto.","Ripeti dividendo il divisore per il resto finché il resto è zero: l'ultimo divisore è il MCD."], String(ans)); } var ans2=lcm(a,b); return makeQ('Numero teoria','input','Minimo comune multiplo','Trova mcm('+a+', '+b+'). Rispondi con un intero.', ans2, null, ["Calcola prima il MCD dei due numeri (puoi usare l'algoritmo di Euclide).","Usa la formula mcm = (a × b) / MCD per trovare il minimo comune multiplo."], String(ans2)); },
   "Problemi": function(D){
     var variant = randChoice(['run','bakery','discount','tip','factory']);
@@ -778,40 +1154,7 @@ var Builders = {
     var meta5='Un laboratorio artigianale produce '+baseProd+' quaderni al giorno per '+(giorni-1)+' giorni. L\'ultimo giorno la produzione cresce del +'+boost+'%. Quanti quaderni realizza complessivamente in '+giorni+' giorni? Arrotonda a 2 decimali.';
     return makeQ('Problemi','input','Produzione giornaliera con aumento',meta5,totProd,null,["Moltiplica la produzione giornaliera per i giorni senza aumento.","Per l'ultimo giorno applica il boost percentuale e somma tutti i pezzi arrotondando a due decimali."], totProd.toFixed(2));
   },
-  "Statistiche": function(D){
-    var fruits=['mele','pere','arance','banane'];
-    var counts=fruits.map(function(){return randInt(6*D,15*D);});
-    var listing = fruits.map(function(f,j){return f.charAt(0).toUpperCase()+f.slice(1)+'='+counts[j];}).join(', ');
-    var variant = randChoice(['quanto-frutto','massimo','somma','differenza','vero-falso']);
-    if(variant==='quanto-frutto'){
-      var i=randInt(0,3);
-      var stem='Lettura di tabella'; var meta='Tabella: '+listing+'. Quante '+fruits[i]+'?';
-      var corr=String(counts[i]);
-      var choices=[String(counts[i]),String(counts[i]+1),String(counts[i]-1),String(counts[(i+1)%4])];
-      return makeQ('Statistiche','mc',stem,meta,corr, sanitizeChoices(stem+' '+meta, choices, corr), ["Osserva la tabella e abbina ogni frutto al numero che lo segue.","Individua la voce richiesta e riporta esattamente il valore indicato."], corr);
-    }
-    if(variant==='massimo'){
-      var maxV = Math.max.apply(null, counts);
-      var correct = fruits[counts.indexOf(maxV)];
-      var stem2='Trova il massimo'; var meta2='Tabella: '+listing+'. Quale frutto è il maggiore?';
-      return makeQ('Statistiche','mc',stem2,meta2,correct, sanitizeChoices(stem2+' '+meta2, fruits.slice(), correct), ["Confronta tutti i numeri della tabella e cerca il valore più grande.","Associa il numero massimo al frutto corrispondente nella tabella."], correct);
-    }
-    if(variant==='somma'){
-      var i2=randInt(0,3); var j2=randInt(0,3); while(j2===i2) j2=randInt(0,3);
-      var ans = counts[i2]+counts[j2];
-      return makeQ('Statistiche','input','Somma di due voci','Tabella: '+listing+'. Quante unità in totale di '+fruits[i2]+' e '+fruits[j2]+'?', ans, null, ["Individua nella tabella i due numeri corrispondenti ai frutti indicati.","Somma i valori trovati per ottenere il totale richiesto."], String(ans));
-    }
-    if(variant==='differenza'){
-      var i3=randInt(0,3); var j3=randInt(0,3); while(j3===i3) j3=randInt(0,3);
-      var ans2 = Math.abs(counts[i3]-counts[j3]);
-      return makeQ('Statistiche','input','Differenza tra voci','Tabella: '+listing+'. Quante unità in più tra '+fruits[i3]+' e '+fruits[j3]+'? (valore assoluto)', ans2, null, ["Prendi i due valori indicati e confrontali.","Sottrai il più piccolo dal più grande per ottenere la differenza assoluta."], String(ans2));
-    }
-    var i4=randInt(0,3); var j4=randInt(0,3); while(j4===i4) j4=randInt(0,3);
-    var isTrue = counts[i4] > counts[j4];
-    var stem3='Vero/Falso (confronto)'; var meta3='Tabella: '+listing+'. Vero o Falso: '+fruits[i4]+' sono più di '+fruits[j4]+'?';
-    var answer=isTrue? 'Vero':'Falso';
-    return makeQ('Statistiche','mc',stem3,meta3,answer, sanitizeChoices(stem3+' '+meta3, ['Vero','Falso'], answer), ["Confronta i due numeri presenti nella tabella.","Se il primo è maggiore la frase è vera, altrimenti è falsa."], answer);
-  }
+
 };
 
 function $(id){ return document.getElementById(id); }
@@ -955,15 +1298,43 @@ function renderStats(){
   renderRecentHistory();
 }
 
+function pickTopicForPlay(){
+  var availableFocus = focusTopics.filter(function(t){ return Builders[t]; });
+  var availableTopics = topicsList.filter(function(t){ return Builders[t]; });
+  if(availableFocus.length && Math.random()<0.65){
+    return randChoice(availableFocus);
+  }
+  if(availableTopics.length){
+    return randChoice(availableTopics);
+  }
+  var fallback = Object.keys(Builders);
+  return randChoice(fallback);
+}
+function refreshTopicButtons(){
+  var wrap = $('topics');
+  if(!wrap) return;
+  Array.prototype.forEach.call(wrap.children, function(btn){
+    btn.classList.toggle('active', btn.textContent===state.topicFilter);
+  });
+}
+function normalizeTopicFilter(){
+  var before = state.topicFilter;
+  if(state.topicFilter && legacyTopicMap[state.topicFilter]){
+    state.topicFilter = legacyTopicMap[state.topicFilter];
+  }
+  if(state.topicFilter && !Builders[state.topicFilter]){
+    state.topicFilter = null;
+  }
+  refreshTopicButtons();
+  if(before !== state.topicFilter){ saveState(); }
+}
 function makeQuestion(){
   var D = state.difficulty;
   if(state.topicFilter && Builders[state.topicFilter]){
     return Builders[state.topicFilter](D);
-  } else {
-    var keys = Object.keys(Builders);
-    var topic = randChoice(keys);
-    return Builders[topic](D);
   }
+  var topic = pickTopicForPlay();
+  return Builders[topic](D);
 }
 
 function renderQuestion(){
@@ -1170,7 +1541,7 @@ $('btnSettings').onclick=function(){ show('settings'); renderStats(); };
 $('startQuick').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
 $('startTrain').onclick=function(){ show('train'); };
 $('trainGo').onclick=function(){ show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
-$('resetTopic').onclick=function(){ state.topicFilter=null; Array.prototype.forEach.call($('topics').children, function(x){x.classList.remove('active');}); saveState(); renderHeader(); };
+$('resetTopic').onclick=function(){ state.topicFilter=null; refreshTopicButtons(); saveState(); renderHeader(); };
 $('btnConfirm').onclick=confirmAnswer;
 $('btnNext').onclick=function(){ if(!state.answeredThis){ $('feedback').innerHTML = "<div class='bad'><b>Prima prova a rispondere.</b> Non puoi saltare senza fare un tentativo.</div>"; return; } nextQuestion(); };
 $('btnHint').onclick=toggleHint;
@@ -1190,22 +1561,28 @@ $('toggleAutoDiff').onchange=function(e){ state.autoDiff = e.target.checked; sav
 
 var levels=$('levels'); [1,2,3].forEach(function(d){
   var b=document.createElement('button'); b.className='pill'; b.textContent=d;
-  b.onclick=function(){ state.difficulty=d; Array.prototype.forEach.call(document.querySelectorAll('.pill'), function(x){x.classList.remove('active');}); b.classList.add('active'); var dl=document.getElementById('diffLabel'); if(dl) dl.textContent=d; saveState(); };
+  b.onclick=function(){ state.difficulty=d; Array.prototype.forEach.call(levels.children, function(x){x.classList.remove('active');}); b.classList.add('active'); var dl=document.getElementById('diffLabel'); if(dl) dl.textContent=d; saveState(); };
   if(d===state.difficulty) b.classList.add('active'); levels.appendChild(b);
 });
 
 var topicsEl=$('topics'); topicsList.forEach(function(t){
   var b=document.createElement('button'); b.className='pill'; b.textContent=t;
-  b.onclick=function(){ if(state.topicFilter===t){ state.topicFilter=null; b.classList.remove('active'); } else { state.topicFilter=t; Array.prototype.forEach.call(topicsEl.children, function(x){x.classList.remove('active');}); b.classList.add('active'); } saveState(); renderHeader(); };
+  b.onclick=function(){
+    state.topicFilter = (state.topicFilter===t) ? null : t;
+    refreshTopicButtons();
+    saveState();
+    renderHeader();
+  };
+  if(state.topicFilter===t){ b.classList.add('active'); }
   topicsEl.appendChild(b);
 });
 
 var quick=$('quickTopics'); topicsList.forEach(function(t){
   var b=document.createElement('button'); b.className='pill'; b.textContent=t;
-  b.onclick=function(){ state.topicFilter=t; saveState(); renderHeader(); show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
+  b.onclick=function(){ state.topicFilter=t; refreshTopicButtons(); saveState(); renderHeader(); show('play'); renderStats(); renderQuestion(); if($('btnNext')) $('btnNext').disabled=true; };
   quick.appendChild(b);
 });
-$('clearTopic').onclick=function(){ state.topicFilter=null; saveState(); renderHeader(); };
+$('clearTopic').onclick=function(){ state.topicFilter=null; refreshTopicButtons(); saveState(); renderHeader(); };
 
 function renderByTopic(){
   var wrap=$('byTopic'); if(!wrap) return; wrap.innerHTML='';
@@ -1224,6 +1601,7 @@ function renderByTopic(){
 
 (function init(){
   try { loadState(); } catch(e){}
+  normalizeTopicFilter();
   rollDailyGoalOnNewDay();
   renderStats();
   $('toggleAuto').checked = !!state.autoAdvance;
