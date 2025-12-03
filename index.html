@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 2ª media (v20.06)</title>
+<title>MathQuest Lite Plus · 2ª media (v21.00)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -78,7 +78,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 2ª media (v20.06)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v21.00)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -196,7 +196,7 @@
           <div class="kicker" id="recentMeta" style="margin-top:4px">Ancora nessun esercizio registrato.</div>
           <div id="recentList" style="margin-top:8px;overflow-x:auto"></div>
         </div>
-        <div class="kicker" style="margin-top:12px">Novità v20.06: focus su numeri razionali, proporzioni e percentuali, radice quadrata, geometria piana, figure piane e statistica di base.</div>
+        <div class="kicker" style="margin-top:12px">Novità v21.00: aggiunti esercizi su MCM/MCD e operazioni combinate tra potenze e radici, con focus rinfrescato per la 2ª media.</div>
         <div style="margin-top:10px" id="byTopic"></div>
         <div style="margin-top:10px" id="suggestions" class="kicker"></div>
         <div class="kicker" id="autoDiffNote" style="margin-top:10px"></div>
@@ -244,6 +244,9 @@ function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function gcd(a,b){ return b ? gcd(b, a%b) : Math.abs(a); }
 function lcm(a,b){ return Math.abs(a*b)/gcd(a,b); }
+function lcmMany(arr){
+  return arr.reduce(function(res,val){ return lcm(res,val); });
+}
 function dec(x,p){ if(p===undefined) p=2; return Number.parseFloat(x.toFixed(p)); }
 function approxEqual(a,b,eps){ if(eps===undefined) eps=1e-6; return Math.abs(Number(a)-Number(b))<=eps; }
 function shuffle(arr){ return arr.map(function(v){return [Math.random(),v];}).sort(function(a,b){return a[0]-b[0];}).map(function(x){return x[1];}); }
@@ -278,9 +281,11 @@ var topicAccent = {
   "Geometria":"#059669",
   "Figure piane":"#0ea5e9",
   "Misure":"#0ea5e9",
+  "Potenze e radici":"#ef4444",
   "Potenze":"#ef4444",
   "Radice quadrata":"#8b5cf6",
   "Radici":"#8b5cf6",
+  "MCM e MCD":"#f97316",
   "Numero teoria":"#22c55e",
   "Problemi":"#f97316",
   "Statistica di base":"#14b8a6",
@@ -318,9 +323,11 @@ var topicsList = [
   "Numeri razionali",
   "Proporzioni e percentuali",
   "Radice quadrata",
+  "Potenze e radici",
   "Geometria piana",
   "Figure piane",
   "Statistica di base",
+  "MCM e MCD",
   "Equazioni",
   "Problemi",
   "Numero teoria",
@@ -331,9 +338,11 @@ var focusTopics = [
   "Numeri razionali",
   "Proporzioni e percentuali",
   "Radice quadrata",
+  "Potenze e radici",
   "Geometria piana",
   "Figure piane",
-  "Statistica di base"
+  "Statistica di base",
+  "MCM e MCD"
 ];
 var legacyTopicMap = {
   "Calcolo interi":"Numeri razionali",
@@ -999,6 +1008,56 @@ var Builders = {
     if(type==='km'){ var km=dec(randInt(10,80)/10,1); return makeQ('Misure','input','Conversione di lunghezza','Converti '+km+' km in m.',km*1000,null,["Per passare da chilometri a metri moltiplica per 1000.","Controlla che l'unità finale sia metri e che il numero sia intero."],String(km*1000)); }
     var c=randInt(5*D,40*D); return makeQ('Misure','input','Conversione di area','Converti '+c+' cm² in mm².',c*100,null,["Ogni lato di 1 cm vale 10 mm: per le aree moltiplichi quindi per 10×10 = 100.","Moltiplica l'area iniziale per 100 per ottenere il valore in mm²."],String(c*100));
   },
+  "Potenze e radici": function(D){
+    var mode = randChoice(['rootPower','powerRoot','fractional','product']);
+    if(mode==='rootPower'){
+      var baseRP = randChoice([2,3,4,5,6,7,8,9]);
+      var expRP = randChoice([4,6]);
+      var valueRP = Math.pow(baseRP, expRP/2);
+      return makeQ('Potenze e radici','input','Radice di una potenza','Calcola: √('+baseRP+'^'+expRP+').', valueRP, null, [
+        'Ricorda che √(a^2) = a: con esponente pari dividi l’esponente per 2.',
+        'Sostituisci e calcola la nuova potenza: '+baseRP+'^'+(expRP/2)+'.'
+      ], String(valueRP));
+    }
+    if(mode==='powerRoot'){
+      var basePR = randChoice([2,3,4,5,6,7,8]);
+      var expPR = randChoice([4,6]);
+      var ansPR = Math.pow(basePR, expPR/2);
+      return makeQ('Potenze e radici','input','Potenza di una radice','Quanto vale (√'+basePR+')^'+expPR+'? Rispondi con un numero intero.', ansPR, null, [
+        'Trasforma la radice in potenza: √'+basePR+' = '+basePR+'^(1/2).',
+        'Quando elevi una potenza a un esponente moltiplichi gli esponenti: (1/2)×'+expPR+' = '+(expPR/2)+'.'
+      ], String(ansPR));
+    }
+    if(mode==='fractional'){
+      var choiceFR = randChoice(['root','powerRoot']);
+      if(choiceFR==='root'){
+        var prompt = 'Quale potenza è equivalente a √x?';
+        var correct = 'x^(1/2)';
+        return makeQ('Potenze e radici','mc','Forma con esponente frazionario',prompt, correct,
+          sanitizeChoices(prompt, [correct,'x^2','x^(2/3)','x^(3/2)'], correct),[
+            'La radice quadrata corrisponde a elevare a 1/2.',
+            'Cerca l’esponente frazionario 1/2 tra le alternative.'
+          ], correct);
+      }
+      var baseFR = randChoice([2,3,4,5]);
+      var expFR = 3;
+      var correctFR = baseFR+'^(3/2)';
+      var promptFR = 'Scrivi √('+baseFR+'^3) come potenza con esponente frazionario.';
+      return makeQ('Potenze e radici','mc','Dal radicale alla potenza',promptFR, correctFR,
+        sanitizeChoices(promptFR, [correctFR, baseFR+'^(1/3)', baseFR+'^(2/3)', baseFR+'^3'], correctFR),[
+          '√(a^m) equivale ad a^(m/2): dividi l’esponente per 2.',
+          'Trascrivi base ed esponente frazionario senza radicale.'
+        ], correctFR);
+    }
+    var baseMixPR = randChoice([2,3,4,5,6]);
+    var expMixPR = randInt(2,3);
+    var answerMix = Math.pow(baseMixPR, expMixPR+1);
+    var metaMixPR = baseMixPR+'^'+expMixPR+' · √('+baseMixPR+'^2) = ?';
+    return makeQ('Potenze e radici','input','Prodotto tra potenze e radici',metaMixPR, answerMix, null, [
+      '√('+baseMixPR+'^2) vale '+baseMixPR+' perché l’esponente è 2.',
+      'Somma gli esponenti: '+expMixPR+' + 1 = '+(expMixPR+1)+', ottenendo '+baseMixPR+'^'+(expMixPR+1)+'.'
+    ], String(answerMix));
+  },
   "Potenze": function(D){
     var mode = randChoice(['calc','product','quotient','powerOfPower','tenPow','compare','expand','compress','mixed','findExp','tenDecomp']);
     if(mode==='calc'){
@@ -1111,6 +1170,51 @@ var Builders = {
         'Moltiplica il coefficiente per 10^'+expTen+' e controlla di avere spostato la virgola di '+expTen+' posizioni a destra.'
       ], String(answerTen));
     }
+  },
+  "MCM e MCD": function(D){
+    var mode = randChoice(['gcd','lcm','lcm3','schedule','reduce']);
+    if(mode==='gcd'){
+      var a=randInt(12,40), b=randInt(10,36);
+      while(gcd(a,b)<2){ a=randInt(12,40); b=randInt(10,36); }
+      var ans=gcd(a,b);
+      return makeQ('MCM e MCD','input','Calcolo del MCD','Trova il MCD tra '+a+' e '+b+'.', ans, null, [
+        'Applica l’algoritmo di Euclide: dividi il numero maggiore per il minore e considera il resto.',
+        'Ripeti con divisore e resto finché il resto è 0: l’ultimo divisore è il MCD.'
+      ], String(ans));
+    }
+    if(mode==='lcm'){
+      var x=randInt(4,12), y=randInt(5,14);
+      var ans2=lcm(x,y);
+      return makeQ('MCM e MCD','input','Minimo comune multiplo','Qual è il mcm tra '+x+' e '+y+'?', ans2, null, [
+        'Scomponi i numeri in fattori primi e prendi i fattori comuni e non comuni con l’esponente più alto.',
+        'In alternativa usa la formula mcm = (a × b) / MCD(a,b) calcolando prima il MCD.'
+      ], String(ans2));
+    }
+    if(mode==='lcm3'){
+      var nums=[randInt(4,9), randInt(5,10), randInt(6,12)];
+      var l3=lcmMany(nums);
+      return makeQ('MCM e MCD','input','mcm di tre numeri','Trova mcm('+nums.join(', ')+').', l3, null, [
+        'Calcola il mcm a coppie: prima tra i primi due numeri, poi usa il risultato con il terzo.',
+        'Assicurati di usare sempre il fattore più grande comune o non comune quando ricostruisci il prodotto.'
+      ], String(l3));
+    }
+    if(mode==='schedule'){
+      var everyA = randChoice([4,6,8,9]);
+      var everyB = randChoice([5,6,7,10]);
+      var meet = lcm(everyA,everyB);
+      return makeQ('MCM e MCD','input','Programmazione con multipli comuni','Un allenamento si ripete ogni '+everyA+' giorni e un laboratorio ogni '+everyB+' giorni. Tra quanti giorni capiteranno insieme?', meet, null, [
+        'Cerca il primo multiplo comune dei due intervalli: è proprio il loro mcm.',
+        'Calcola il mcm con la scomposizione in fattori primi o con la formula (a × b) / MCD.'
+      ], String(meet));
+    }
+    var g = randChoice([2,3,4,5]);
+    var num = randInt(3,9)*g;
+    var den = randInt(4,10)*g;
+    var reduced = simplifyFraction(num, den);
+    return makeQ('MCM e MCD','input','Riduci ai minimi termini','Semplifica '+num+'/'+den+' usando il MCD.', reduced, null, [
+      'Trova il MCD tra numeratore e denominatore e dividili entrambi per quel numero.',
+      'Controlla che non restino fattori comuni ulteriori: la frazione deve essere irriducibile.'
+    ], reduced);
   },
   "Numero teoria": function(D){ var a=randInt(6*D,20*D), b=randInt(6*D,20*D); var mode=randChoice(['MCD','mcm']); if(mode==='MCD'){ var ans=gcd(a,b); return makeQ('Numero teoria','input','Massimo Comune Divisore','Trova MCD('+a+', '+b+'). Rispondi con un intero.', ans, null, ["Dividi il numero maggiore per il minore e prendi il resto.","Ripeti dividendo il divisore per il resto finché il resto è zero: l'ultimo divisore è il MCD."], String(ans)); } var ans2=lcm(a,b); return makeQ('Numero teoria','input','Minimo comune multiplo','Trova mcm('+a+', '+b+'). Rispondi con un intero.', ans2, null, ["Calcola prima il MCD dei due numeri (puoi usare l'algoritmo di Euclide).","Usa la formula mcm = (a × b) / MCD per trovare il minimo comune multiplo."], String(ans2)); },
   "Problemi": function(D){
