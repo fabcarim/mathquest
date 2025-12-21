@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 2ª media (v21.00)</title>
+<title>MathQuest Lite Plus · 2ª media (v21.01)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -57,8 +57,8 @@
   .tag.ok{background:#dcfce7;color:#166534}
   .tag.ko{background:#fee2e2;color:#991b1b}
   .tag.diff{background:#e0e7ff;color:#312e81}
-  .board-area{border:1px dashed #111;border-radius:12px;background:#fff;padding:10px;box-shadow:inset 0 1px 4px rgba(0,0,0,.05);}
-  #scratchpad{width:100%;height:240px;touch-action:none;border-radius:10px;background:#fff;box-shadow:inset 0 1px 3px rgba(0,0,0,.06);}
+  .board-area{border:1px dashed #111;border-radius:12px;background:#fff;padding:12px;box-shadow:inset 0 1px 4px rgba(0,0,0,.05);-webkit-user-select:none;user-select:none;}
+  #scratchpad{width:100%;height:320px;touch-action:none;border-radius:12px;background:#fff;box-shadow:inset 0 1px 3px rgba(0,0,0,.06);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:crosshair;}
   .scratch-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between;}
   .scratch-toolbar .kicker{margin:0;}
   @media (max-width: 820px) {
@@ -82,7 +82,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 2ª media (v21.00)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v21.01)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -216,7 +216,7 @@
           <div class="kicker" id="recentMeta" style="margin-top:4px">Ancora nessun esercizio registrato.</div>
           <div id="recentList" style="margin-top:8px;overflow-x:auto"></div>
         </div>
-        <div class="kicker" style="margin-top:12px">Novità v21.00: aggiunti esercizi su MCM/MCD e operazioni combinate tra potenze e radici, con focus rinfrescato per la 2ª media.</div>
+        <div class="kicker" style="margin-top:12px">Novità v21.01: lavagna più ampia e anti-selezione su tablet, esercizi aggiuntivi su operazioni con i radicali e hint con esempio guidato.</div>
         <div style="margin-top:10px" id="byTopic"></div>
         <div style="margin-top:10px" id="suggestions" class="kicker"></div>
         <div class="kicker" id="autoDiffNote" style="margin-top:10px"></div>
@@ -288,7 +288,7 @@ function mean(arr){
   return arr.reduce(function(sum,v){ return sum+v; },0)/arr.length;
 }
 
-var scratchpad = { canvas: null, ctx: null, drawing: false, ratio: 1 };
+var scratchpad = { canvas: null, ctx: null, drawing: false, ratio: 1, pointerId: null };
 function scratchPos(evt){
   if(!scratchpad.canvas) return {x:0,y:0};
   var rect = scratchpad.canvas.getBoundingClientRect();
@@ -298,7 +298,7 @@ function resizeScratchpad(){
   if(!scratchpad.canvas) return;
   var wrap = document.getElementById('boardWrap');
   var width = wrap? Math.max(320, Math.round(wrap.clientWidth||wrap.offsetWidth||360)) : 360;
-  var height = 240;
+  var height = Math.min(420, Math.max(280, Math.round(width*0.6)));
   var ratio = window.devicePixelRatio || 1;
   scratchpad.canvas.width = Math.floor(width * ratio);
   scratchpad.canvas.height = Math.floor(height * ratio);
@@ -326,6 +326,10 @@ function clearScratchpad(){
 function scratchStart(evt){
   if(!scratchpad.ctx) return;
   scratchpad.drawing = true;
+  scratchpad.pointerId = evt.pointerId;
+  if(scratchpad.canvas && scratchpad.canvas.setPointerCapture && evt.pointerId!==undefined){
+    try{ scratchpad.canvas.setPointerCapture(evt.pointerId); }catch(e){}
+  }
   var p = scratchPos(evt);
   scratchpad.ctx.beginPath();
   scratchpad.ctx.moveTo(p.x, p.y);
@@ -338,9 +342,13 @@ function scratchMove(evt){
   scratchpad.ctx.stroke();
   evt.preventDefault();
 }
-function scratchEnd(){
+function scratchEnd(evt){
   if(!scratchpad.ctx) return;
   scratchpad.drawing = false;
+  if(evt && scratchpad.canvas && scratchpad.canvas.releasePointerCapture && scratchpad.pointerId!==null){
+    try{ scratchpad.canvas.releasePointerCapture(scratchpad.pointerId); }catch(e){}
+  }
+  scratchpad.pointerId = null;
   scratchpad.ctx.closePath();
 }
 function toggleScratchpad(force){
@@ -359,6 +367,19 @@ function setupScratchpad(){
   scratchpad.canvas = document.getElementById('scratchpad');
   if(!scratchpad.canvas) return;
   scratchpad.canvas.style.touchAction='none';
+  scratchpad.canvas.style.webkitUserSelect='none';
+  scratchpad.canvas.style.userSelect='none';
+  scratchpad.canvas.style.webkitTouchCallout='none';
+  var wrap = document.getElementById('boardWrap');
+  if(wrap){
+    wrap.style.webkitUserSelect='none';
+    wrap.style.userSelect='none';
+    ['touchstart','touchmove'].forEach(function(ev){
+      wrap.addEventListener(ev, function(e){ if(e.target===scratchpad.canvas){ e.preventDefault(); } }, {passive:false});
+    });
+  }
+  scratchpad.canvas.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  scratchpad.canvas.addEventListener('gesturestart', function(e){ e.preventDefault(); });
   ['pointerdown','pointermove'].forEach(function(ev){
     scratchpad.canvas.addEventListener(ev, function(e){ if(ev==='pointerdown'){ scratchStart(e); } else { scratchMove(e); } });
   });
@@ -1114,7 +1135,7 @@ var Builders = {
     var c=randInt(5*D,40*D); return makeQ('Misure','input','Conversione di area','Converti '+c+' cm² in mm².',c*100,null,["Ogni lato di 1 cm vale 10 mm: per le aree moltiplichi quindi per 10×10 = 100.","Moltiplica l'area iniziale per 100 per ottenere il valore in mm²."],String(c*100));
   },
   "Potenze e radici": function(D){
-    var mode = randChoice(['rootPower','powerRoot','fractional','product']);
+    var mode = randChoice(['rootPower','powerRoot','fractional','radicalOps','product']);
     if(mode==='rootPower'){
       var baseRP = randChoice([2,3,4,5,6,7,8,9]);
       var expRP = randChoice([4,6]);
@@ -1153,6 +1174,38 @@ var Builders = {
           '√(a^m) equivale ad a^(m/2): dividi l’esponente per 2.',
           'Trascrivi base ed esponente frazionario senza radicale.'
         ], correctFR);
+    }
+    if(mode==='radicalOps'){
+      var variantRO = randChoice(['sum','product','simplify']);
+      if(variantRO==='sum'){
+        var aSum = randChoice([4,9,16,25]);
+        var bSum = randChoice([4,9,16,25]);
+        var ansSum = Math.sqrt(aSum)+Math.sqrt(bSum);
+        return makeQ('Potenze e radici','input','Somma di radicali semplici','Calcola: √'+aSum+' + √'+bSum+'. Rispondi con un numero intero.', ansSum, null, [
+          'Calcola separatamente le due radici: √'+aSum+' = '+Math.sqrt(aSum)+' e √'+bSum+' = '+Math.sqrt(bSum)+'.',
+          'Somma i risultati ottenuti e scrivi il totale.'
+        ], String(ansSum));
+      }
+      if(variantRO==='product'){
+        var aProd = randChoice([4,9,16,25]);
+        var bProd = randChoice([4,9,25,36,49]);
+        var ansProd = Math.sqrt(aProd*bProd);
+        var combined = aProd*bProd;
+        return makeQ('Potenze e radici','input','Prodotto tra radicali','Calcola: √'+aProd+' · √'+bProd+' e semplifica il risultato.', ansProd, null, [
+          'Usa la proprietà: √a · √b = √(a·b) e moltiplica i radicandi.',
+          'Se il prodotto ('+combined+') è un quadrato perfetto, calcola direttamente la radice.'
+        ], String(ansProd));
+      }
+      var inner = randChoice([2,3,5,7]);
+      var factor = randChoice([2,3,4]);
+      var radicand = factor*factor*inner;
+      var simplified = factor+'√'+inner;
+      var choices = sanitizeChoices('Semplifica radicale √'+radicand, [simplified, (factor*factor)+'√'+inner, factor+'√'+(inner*factor), (factor+1)+'√'+inner], simplified);
+      return makeQ('Potenze e radici','mc','Semplifica un radicale','Semplifica √'+radicand+' estraendo il quadrato perfetto.', simplified,
+        choices,[
+          'Scomponi il radicando come ('+factor+'²)·'+inner+'.',
+          'Porta fuori dal radicale il fattore '+factor+' e lascia √'+inner+' all’interno.'
+        ], simplified);
     }
     var baseMixPR = randChoice([2,3,4,5,6]);
     var expMixPR = randInt(2,3);
@@ -1703,6 +1756,12 @@ function confirmAnswer(){
 }
 
 function nextQuestion(){ renderQuestion(); }
+function hintExampleText(){
+  if(!state.question) return '';
+  var base = state.question.meta || state.question.stem || '';
+  var sol = (state.question.solution!==undefined && state.question.solution!==null) ? (' → risultato: '+state.question.solution) : '';
+  return base ? (base + sol) : sol;
+}
 function toggleHint(){
   var h=$('hints');
   if(!h) return;
@@ -1711,11 +1770,17 @@ function toggleHint(){
   var stage = h.dataset.stage || 'hidden';
   if(stage==='hidden'){
     var text = hints.length? ('Suggerimento iniziale: '+hints[0]) : 'Nessun suggerimento disponibile per questo esercizio.';
+    if(hints.length<=1){
+      var exFirst = hintExampleText();
+      if(exFirst){ text += '\n\nEsempio guidato: '+exFirst; }
+    }
     h.textContent = text;
     h.style.display='block';
     h.dataset.stage = hints.length>1? 'partial' : 'full';
   } else if(stage==='partial'){
     var full = hints.map(function(item, idx){ return (idx+1)+') '+item; }).join('\n\n');
+    var ex = hintExampleText();
+    if(ex){ full += '\n\nEsempio guidato: '+ex; }
     h.textContent = full;
     h.dataset.stage = 'full';
   } else {
