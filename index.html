@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>MathQuest Lite Plus · 2ª media (v21.01)</title>
+<title>MathQuest Lite Plus · 2ª media (v21.02)</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <style>
   :root{--bg:#f5f7ff;--fg:#111;--accent:#111;--muted:#6b7280;--accent2:#2563eb;--accent3:#0ea5e9;--accent4:#10b981;--accent5:#f59e0b;--accent6:#ec4899}
@@ -82,7 +82,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content:space-between;align-items:center">
-      <h1>MathQuest Lite Plus · 2ª media (v21.01)</h1>
+      <h1>MathQuest Lite Plus · 2ª media (v21.02)</h1>
       <div class="row" style="align-items:center">
         <span style="font-size:14px;color:var(--muted)">Difficoltà</span>
         <div id="levels" class="row"></div>
@@ -216,7 +216,7 @@
           <div class="kicker" id="recentMeta" style="margin-top:4px">Ancora nessun esercizio registrato.</div>
           <div id="recentList" style="margin-top:8px;overflow-x:auto"></div>
         </div>
-        <div class="kicker" style="margin-top:12px">Novità v21.01: lavagna più ampia e anti-selezione su tablet, esercizi aggiuntivi su operazioni con i radicali e hint con esempio guidato.</div>
+        <div class="kicker" style="margin-top:12px">Novità v21.02: maggiore stabilità, lavagna sempre pronta e suggerimenti più prudenti (senza soluzione) per i nuovi esercizi di potenze e radici.</div>
         <div style="margin-top:10px" id="byTopic"></div>
         <div style="margin-top:10px" id="suggestions" class="kicker"></div>
         <div class="kicker" id="autoDiffNote" style="margin-top:10px"></div>
@@ -1591,6 +1591,24 @@ function normalizeTopicFilter(){
   refreshTopicButtons();
   if(before !== state.topicFilter){ saveState(); }
 }
+function makeFallbackQuestion(){
+  var a = randInt(2,9), b = randInt(2,9);
+  var ans = a + b;
+  var stem = 'Ripasso rapido: calcola '+a+' + '+b;
+  var meta = 'Esegui la somma e inserisci il risultato come numero intero.';
+  var hints = [
+    'Allinea i due numeri e somma le unità, poi le decine: controlla sottraendo uno degli addendi dal totale.',
+    'Se hai dubbi, prova un esempio simile con cifre piccole per verificare il metodo.'
+  ];
+  return makeQ('Numeri razionali','input',stem,meta,ans,null,hints,String(ans));
+}
+function buildSafeQuestion(){
+  try {
+    var q = makeQuestion();
+    if(q && q.stem && q.answer!==undefined){ return q; }
+  } catch(err){ console.error('Question build error', err); }
+  return makeFallbackQuestion();
+}
 function makeQuestion(){
   var D = state.difficulty;
   if(state.topicFilter && Builders[state.topicFilter]){
@@ -1601,7 +1619,7 @@ function makeQuestion(){
 }
 
 function renderQuestion(){
-  var q = makeQuestion();
+  var q = buildSafeQuestion();
   state.question = q;
   state.input='';
   state.answeredThis=false;
@@ -1759,8 +1777,12 @@ function nextQuestion(){ renderQuestion(); }
 function hintExampleText(){
   if(!state.question) return '';
   var base = state.question.meta || state.question.stem || '';
-  var sol = (state.question.solution!==undefined && state.question.solution!==null) ? (' → risultato: '+state.question.solution) : '';
-  return base ? (base + sol) : sol;
+  if(!base) return '';
+  var anonymized = base.replace(/\d+/g, function(match){
+    var len = Math.max(1, Math.min(3, match.length));
+    return Array(len+1).join('…');
+  });
+  return 'Esempio simile: '+anonymized+' (risultato nascosto)';
 }
 function toggleHint(){
   var h=$('hints');
@@ -1772,7 +1794,7 @@ function toggleHint(){
     var text = hints.length? ('Suggerimento iniziale: '+hints[0]) : 'Nessun suggerimento disponibile per questo esercizio.';
     if(hints.length<=1){
       var exFirst = hintExampleText();
-      if(exFirst){ text += '\n\nEsempio guidato: '+exFirst; }
+      if(exFirst){ text += '\n\n'+exFirst; }
     }
     h.textContent = text;
     h.style.display='block';
@@ -1780,7 +1802,7 @@ function toggleHint(){
   } else if(stage==='partial'){
     var full = hints.map(function(item, idx){ return (idx+1)+') '+item; }).join('\n\n');
     var ex = hintExampleText();
-    if(ex){ full += '\n\nEsempio guidato: '+ex; }
+    if(ex){ full += '\n\n'+ex; }
     h.textContent = full;
     h.dataset.stage = 'full';
   } else {
