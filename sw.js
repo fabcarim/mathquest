@@ -1,71 +1,62 @@
-/* sw.js — MathQuest PWA — v12
-   - Navigazioni (document): NETWORK-FIRST con fallback offline (index.html)
-   - Asset statici: CACHE-FIRST con fill dinamico
-*/
-const VERSION    = 'v12';
+// sw.js v18.3 – cache-busting
+const VERSION = 'v183';
 const CACHE_NAME = `mathquest-${VERSION}`;
 
-const PRECACHE = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './sw.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+const scopeURL = new URL(self.registration.scope);
+function asset(url) { return new URL(url, scopeURL).toString(); }
+
+const CORE_ASSETS = [
+  asset('./'),
+  asset('index.html'),
+  asset('styles.css'),
+  asset('app.js'),
+  asset('manifest.webmanifest')
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
-  );
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
+  );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : undefined)))
-    )
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  const sameOrigin = url.origin === self.location.origin;
 
-  if (url.origin !== self.location.origin) return;
-
-  const isNav = req.mode === 'navigate' || req.destination === 'document';
-  if (isNav) {
-    event.respondWith(
-      fetch(req)
-        .then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE_NAME).then((c) => c.put('./index.html', copy));
-          return resp;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
+  if (req.mode === 'navigate') {
+    event.respondWith(fetch(req).catch(() => caches.match(asset('index.html'))));
     return;
   }
 
-  if (req.method === 'GET') {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        if (cached) return cached;
-        return fetch(req).then((resp) => {
-          if (resp && resp.status === 200 && resp.type === 'basic') {
-            const copy = resp.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-          }
+  if (sameOrigin) {
+    const isCore = CORE_ASSETS.some(u => u === url.toString());
+    if (isCore) {
+      event.respondWith(
+        caches.match(req).then(cached => cached || fetch(req).then(resp => {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
           return resp;
-        });
-      })
+        }))
+      );
+      return;
+    }
+    event.respondWith(
+      fetch(req).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        return resp;
+      }).catch(() => caches.match(req))
     );
   }
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
